@@ -5,6 +5,7 @@ import DonorDashboard from './pages/DonorDashboard';
 import KitchenDashboard from './pages/KitchenDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import RoutingMap from './pages/RoutingMap';
+import ReputationLedgerPage from './pages/ReputationLedgerPage';
 
 function AppContent() {
   const [user, setUser] = useState(null);
@@ -73,6 +74,7 @@ function AppContent() {
               <>
                 <Link to="/admin" className="nav-link">Admin Panel</Link>
                 <Link to="/map" className="nav-link">Routing Map</Link>
+                <Link to="/ledger" className="nav-link">Reputation Ledger</Link>
               </>
             )}
             <div className="user-badge">
@@ -123,6 +125,14 @@ function AppContent() {
           element={
             <ProtectedRoute allowedRoles={['soup_kitchen', 'admin']}>
               <RoutingMap user={user} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ledger" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <ReputationLedgerPage user={user} />
             </ProtectedRoute>
           } 
         />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import LeafletMap from '../components/LeafletMap';
+import CustodyRibbon from '../components/CustodyRibbon';
 
 export default function AdminDashboard({ user }) {
   const [pendingIngredients, setPendingIngredients] = useState([]);
@@ -211,15 +212,15 @@ export default function AdminDashboard({ user }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Global Ingredients Donated</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>{stats.totalIngredients}</span>
+            <span className="mono-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--structure)' }}>{stats.totalIngredients}</span>
           </div>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Global Fulfilled Requests</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif' }}>{stats.totalFulfilled}</span>
+            <span className="mono-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--verified)' }}>{stats.totalFulfilled}</span>
           </div>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Active Food Donors</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#3b82f6', fontFamily: 'Outfit, sans-serif' }}>{stats.activeDonors}</span>
+            <span className="mono-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--active)' }}>{stats.activeDonors}</span>
           </div>
         </div>
       )}
@@ -245,22 +246,35 @@ export default function AdminDashboard({ user }) {
             {pendingIngredients.map((ing) => (
               <div 
                 key={ing._id} 
-                className={`glass-panel`} 
+                className={`ingredient-card glass-panel status-card-${ing.status}`} 
                 style={{ 
-                  padding: '1.25rem', 
                   cursor: 'pointer',
-                  border: selectedIngredient?._id === ing._id ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
-                  background: selectedIngredient?._id === ing._id ? 'rgba(59, 130, 246, 0.05)' : 'rgba(22, 30, 49, 0.7)'
+                  border: selectedIngredient?._id === ing._id ? '2.5px solid var(--active)' : '1px solid var(--border)',
+                  boxShadow: selectedIngredient?._id === ing._id ? '0 8px 24px rgba(37, 99, 235, 0.15)' : 'none',
+                  background: 'var(--surface)',
+                  marginBottom: '1rem',
+                  height: 'fit-content'
                 }}
                 onClick={() => setSelectedIngredient(ing)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{ing.name}</h4>
-                  <span className="status-badge status-pending">{ing.category}</span>
+                <div className="card-header" style={{ borderBottom: 'none', paddingBottom: '0.25rem' }}>
+                  <div>
+                    <h4 className="card-title" style={{ fontSize: '1.05rem', margin: 0 }}>{ing.name}</h4>
+                    <div className="card-category">{ing.category}</div>
+                  </div>
                 </div>
-                <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <p>Donor: <strong>{ing.donorRef?.name || 'Unknown'}</strong></p>
-                  <p style={{ marginTop: '0.2rem' }}>Quantity: {ing.quantity} {ing.unit}</p>
+                <div style={{ padding: '0 1.25rem 0.25rem 1.25rem' }}>
+                  <CustodyRibbon status={ing.status} />
+                </div>
+                <div className="card-body" style={{ fontSize: '0.85rem', paddingTop: 0 }}>
+                  <div className="info-item" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <span className="info-label">Donor:</span>
+                    <span className="info-value">{ing.donorRef?.name || 'Unknown'}</span>
+                  </div>
+                  <div className="info-item" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span className="info-label">Quantity:</span>
+                    <span className="info-value">{ing.quantity} {ing.unit}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -344,23 +358,23 @@ export default function AdminDashboard({ user }) {
         ) : (
           <div className="listings-grid">
             {issueReports.map((report) => (
-              <div key={report._id} className="ingredient-card glass-panel" style={{ border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.02)', height: 'fit-content' }}>
-                <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+              <div key={report._id} className={`ingredient-card glass-panel status-card-rejected`} style={{ border: '1px solid var(--danger)', height: 'fit-content' }}>
+                <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none', paddingBottom: '0.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <h3 className="card-title">{report.ingredientRef?.name || 'Unknown Item'}</h3>
-                    <span className="status-badge status-rejected" style={{ fontSize: '0.7rem' }}>
-                      Pending Resolution
-                    </span>
                   </div>
                   <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Reported by: <strong>{report.reportedBy?.name || 'Soup Kitchen'}</strong></span>
                   </div>
                 </div>
+                <div style={{ padding: '0 1.25rem 0.5rem 1.25rem' }}>
+                  <CustodyRibbon status={report.ingredientRef?.status} deliveryStatus={report.reservationRef?.deliveryStatus} />
+                </div>
 
                 <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <div style={{ background: 'rgba(0,0,0,0.15)', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem' }}>
-                    <p style={{ fontWeight: 600, color: '#fca5a5', marginBottom: '0.2rem' }}>Reason:</p>
-                    <p style={{ color: 'white' }}>{report.reason}</p>
+                  <div style={{ background: 'rgba(220, 38, 38, 0.05)', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', border: '1px solid rgba(220, 38, 38, 0.15)' }}>
+                    <p style={{ fontWeight: 600, color: 'var(--danger)', marginBottom: '0.2rem' }}>Reason:</p>
+                    <p style={{ color: 'var(--structure)' }}>{report.reason}</p>
                   </div>
 
                   {report.proofDescription && (
@@ -370,7 +384,7 @@ export default function AdminDashboard({ user }) {
                     </div>
                   )}
 
-                  <div className="info-item" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem', marginTop: '0.2rem' }}>
+                  <div className="info-item" style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', marginTop: '0.2rem' }}>
                     <span className="info-label">Reservation Qty:</span>
                     <span className="info-value">{report.reservationRef?.reservedQuantity || 'N/A'}</span>
                   </div>

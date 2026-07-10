@@ -4,22 +4,20 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Fix default marker asset resolution issue
-const greenIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+const greenIcon = L.divIcon({
+  className: 'custom-map-pin-kitchen',
+  html: `<div style="background-color: #14B8A6; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 3px #14B8A6; margin: 5px;"></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
 });
 
-const redIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+const redIcon = L.divIcon({
+  className: 'custom-map-pin-ingredient',
+  html: `<div style="background-color: #F59E0B; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 3px #F59E0B; margin: 5px;"></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
 });
 
 // Map Controller for dynamic panning and framing
@@ -137,9 +135,9 @@ export default function RoutingMap({ user }) {
     
     labelIcon = L.divIcon({
       className: 'distance-label-wrapper',
-      html: `<div style="background: #1e293b; color: #60a5fa; border: 2px solid #3b82f6; border-radius: 20px; padding: 4px 10px; font-weight: 700; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">${distance.toFixed(2)} km</div>`,
-      iconSize: [80, 24],
-      iconAnchor: [40, 12]
+      html: `<div style="background: #FFFFFF; color: #2563EB; border: 1.5px solid #D6DEE8; border-radius: 20px; padding: 4px 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 10px rgba(15,23,42,0.15);">${distance.toFixed(2)} KM AWAY</div>`,
+      iconSize: [110, 24],
+      iconAnchor: [55, 12]
     });
   }
 
@@ -199,7 +197,7 @@ export default function RoutingMap({ user }) {
                   [selectedKitchen.location.lat, selectedKitchen.location.lng],
                   [selectedIngredient.location.lat, selectedIngredient.location.lng]
                 ]}
-                pathOptions={{ color: '#3b82f6', weight: 4, dashArray: '5, 10' }}
+                pathOptions={{ color: '#2563EB', weight: 4, dashArray: '5, 10' }}
               />
               <Marker position={[midLat, midLng]} icon={labelIcon} />
             </>

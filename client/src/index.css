@@ -1,36 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
 :root {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark light;
-  color: #e2e8f0;
-  background-color: #0b0f19;
+  color-scheme: light;
+  color: #0F172A;
+  background-color: #E2E8F0;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Harmonious Dark Mode Theme */
-  --bg-primary: #0b0f19;
-  --bg-secondary: #161e31;
-  --bg-tertiary: #1f2a45;
-  --border-color: #2e3e5f;
+  /* Chain-of-Custody Design System Variables */
+  --bg: #E2E8F0;
+  --structure: #0F172A;
+  --active: #2563EB;
+  --verified: #14B8A6;
+  --attention: #F59E0B;
+  --danger: #DC2626;
+  --surface: #FFFFFF;
+  --border: #D6DEE8;
+
+  /* Legacy Mappings for Compatibility */
+  --bg-primary: var(--bg);
+  --bg-secondary: #EDF2F7;
+  --bg-tertiary: #FAF7F0;
+  --border-color: var(--border);
   
-  --accent-color: #3b82f6;
-  --accent-glow: rgba(59, 130, 246, 0.15);
+  --accent-color: var(--active);
+  --accent-glow: rgba(37, 99, 235, 0.12);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  --text-primary: var(--structure);
+  --text-secondary: rgba(15, 23, 42, 0.7);
+  --text-tertiary: rgba(15, 23, 42, 0.5);
   
   /* Status Colors */
-  --color-pending: #f59e0b;
-  --color-approved: #10b981;
-  --color-rejected: #ef4444;
-  --color-reserved: #6366f1;
-  --color-expired: #64748b;
+  --color-pending: var(--attention);
+  --color-approved: var(--verified);
+  --color-rejected: var(--danger);
+  --color-reserved: var(--active);
+  --color-expired: var(--danger);
 }
 
 * {
@@ -46,13 +58,12 @@ body {
   min-height: 100vh;
 }
 
-/* Glassmorphism card utility */
+/* Glassmorphism card utility updated for light theme */
 .glass-panel {
-  background: rgba(22, 30, 49, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px; /* 8px radius for cards */
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
 /* Primary Layout styling */
@@ -67,21 +78,19 @@ header.navbar {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: rgba(11, 15, 25, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 1000;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .brand {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'IBM Plex Serif', serif !important;
   font-size: 1.35rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--structure);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -97,15 +106,20 @@ header.navbar {
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   padding: 0.5rem 0.8rem;
   border-radius: 6px;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
-.nav-link:hover, .nav-link.active {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+.nav-link:hover {
+  color: var(--active);
+  text-decoration: underline;
+}
+
+.nav-link.active {
+  color: var(--active);
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .user-badge {
@@ -117,6 +131,7 @@ header.navbar {
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  color: var(--structure);
 }
 
 .role-tag {
@@ -125,8 +140,8 @@ header.navbar {
   text-transform: uppercase;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  background: var(--accent-glow);
-  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--active);
 }
 
 /* Button styling */
@@ -138,43 +153,56 @@ header.navbar {
   padding: 0.6rem 1.2rem;
   font-size: 0.9rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px; /* 6px radius */
   border: none;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
   text-decoration: none;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: var(--active);
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+  background-color: #1d4ed8; /* ~10% darker than #2563EB */
 }
 
 .btn-secondary {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background-color: #f1f5f9;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  background: var(--danger);
   color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
 .btn-danger:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+  background-color: #b91c1c; /* ~10% darker than #DC2626 */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn {
+    transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+  }
+  .btn-danger:hover {
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+  }
 }
 
 /* Dashboard styling */
@@ -246,18 +274,34 @@ header.navbar {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 8px; /* 8px radius for cards */
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  background-color: var(--surface); /* white background */
+  border: 1px solid var(--border); /* thin border */
 }
 
-.ingredient-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+/* Card Status Border Accents using new variables */
+.ingredient-card.status-card-approved { border-left: 3px solid var(--verified); }
+.ingredient-card.status-card-pending { border-left: 3px solid var(--attention); }
+.ingredient-card.status-card-rejected { border-left: 3px solid var(--danger); }
+.ingredient-card.status-card-expired { border-left: 3px solid var(--danger); }
+.ingredient-card.status-card-reserved { border-left: 3px solid var(--active); }
+.ingredient-card.status-card-picked_up { border-left: 3px solid var(--active); }
+.ingredient-card.status-card-delivered { border-left: 3px solid var(--verified); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ingredient-card {
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+  .ingredient-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
 }
 
 .card-header {
-  padding: 1.25rem;
+  padding: 1.25rem 1.25rem 0.75rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
@@ -265,54 +309,65 @@ header.navbar {
 }
 
 .card-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: 'IBM Plex Serif', serif !important;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--structure);
 }
 
 .card-category {
+  font-family: 'IBM Plex Sans', sans-serif !important;
   font-size: 0.8rem;
   color: var(--text-secondary);
+  opacity: 0.6;
   margin-top: 0.2rem;
 }
 
 .status-badge {
-  font-size: 0.75rem;
+  font-family: 'IBM Plex Sans', sans-serif !important;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
 }
 
-.status-pending { background: rgba(245, 158, 11, 0.15); color: var(--color-pending); }
-.status-approved { background: rgba(16, 185, 129, 0.15); color: var(--color-approved); }
-.status-rejected { background: rgba(239, 68, 68, 0.15); color: var(--color-rejected); }
-.status-reserved { background: rgba(99, 102, 241, 0.15); color: var(--color-reserved); }
-.status-expired { background: rgba(100, 116, 139, 0.15); color: var(--color-expired); }
+.status-pending { background: rgba(245, 158, 11, 0.22); color: var(--attention); }
+.status-approved { background: rgba(20, 184, 166, 0.22); color: var(--verified); }
+.status-rejected { background: rgba(220, 38, 38, 0.22); color: var(--danger); }
+.status-reserved { background: rgba(37, 99, 235, 0.22); color: var(--active); }
+.status-expired { background: rgba(220, 38, 38, 0.22); color: var(--danger); }
+.status-picked_up { background: rgba(37, 99, 235, 0.22); color: var(--active); }
+.status-delivered { background: rgba(20, 184, 166, 0.22); color: var(--verified); }
 
 .card-body {
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.65rem;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
+  align-items: center;
 }
 
 .info-label {
+  font-family: 'IBM Plex Sans', sans-serif !important;
   color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .info-value {
-  font-weight: 500;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-weight: 600;
+  color: var(--structure);
 }
 
 .card-footer {
@@ -320,7 +375,7 @@ header.navbar {
   border-top: 1px solid var(--border-color);
   display: flex;
   gap: 0.75rem;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(15, 23, 42, 0.02);
 }
 
 /* Modals */
@@ -387,15 +442,15 @@ header.navbar {
 }
 
 .alert-danger {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--danger);
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #a7f3d0;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  color: var(--verified);
 }
 
 /* Auth view styling */
@@ -411,7 +466,10 @@ header.navbar {
   width: 100%;
   max-width: 450px;
   padding: 2.5rem 2rem;
-  border-radius: 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 
 .auth-header {
@@ -420,10 +478,11 @@ header.navbar {
 }
 
 .auth-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'IBM Plex Serif', serif !important;
   font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+  color: var(--structure);
 }
 
 .auth-subtitle {
@@ -448,10 +507,11 @@ header.navbar {
   color: var(--text-secondary);
   cursor: pointer;
   position: relative;
+  font-family: 'IBM Plex Sans', sans-serif !important;
 }
 
 .tab.active {
-  color: var(--text-primary);
+  color: var(--active);
 }
 
 .tab.active::after {
@@ -461,5 +521,148 @@ header.navbar {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-color);
+  background: var(--active);
+}
+
+/* Modals updated for light theme */
+.modal-content {
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1);
+}
+
+/* Custody Ribbon Design */
+.custody-ribbon-container {
+  position: relative;
+  margin: 1.25rem 0;
+  width: 100%;
+  padding-bottom: 0.5rem;
+}
+
+.custody-line-bg {
+  position: absolute;
+  top: 10px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background-color: var(--border);
+  z-index: 1;
+}
+
+.custody-stages-wrapper {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.custody-stage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+}
+
+.custody-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  background-color: var(--surface);
+  border: 2px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.custody-node-future {
+  border-color: var(--border);
+  color: var(--text-tertiary);
+  background-color: var(--surface);
+}
+
+.custody-node-completed {
+  border-color: var(--verified);
+  background-color: var(--verified);
+  color: white;
+}
+
+.custody-node-active {
+  border-color: var(--active);
+  background-color: var(--active);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.custody-node-danger {
+  border-color: var(--danger);
+  background-color: var(--danger);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+.custody-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: 0.1rem;
+}
+
+.custody-label-completed {
+  color: var(--verified);
+  font-weight: 600;
+}
+
+.custody-label-active {
+  color: var(--active);
+  font-weight: 700;
+}
+
+.custody-label-danger {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* Numerical Data values in Plex Mono */
+.pickup-code-val, .reputation-score-val, .mono-val {
+  font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* Reputation Ledger Hover Interactivity styles */
+.ledger-row {
+  transition: background-color 120ms ease;
+}
+
+.ledger-row:hover {
+  background-color: rgba(15, 23, 42, 0.03) !important;
+}
+
+.ledger-role-badge {
+  transition: background-color 120ms ease, filter 120ms ease;
+}
+
+.ledger-row:hover .ledger-role-badge {
+  filter: brightness(0.92);
+}
+
+.ledger-score-cell {
+  transition: transform 120ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ledger-row:hover .ledger-score-cell {
+    transform: scale(1.03);
+  }
 }

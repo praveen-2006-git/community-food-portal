@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import LeafletMap from '../components/LeafletMap';
+import CustodyRibbon from '../components/CustodyRibbon';
 
 export default function DonorDashboard({ user }) {
   const [ingredients, setIngredients] = useState([]);
@@ -306,15 +307,15 @@ export default function DonorDashboard({ user }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Ingredients Donated</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>{stats.totalIngredients}</span>
+            <span className="mono-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--structure)' }}>{stats.totalIngredients}</span>
           </div>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Requests Fulfilled</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif' }}>{stats.totalFulfilled}</span>
+            <span className="mono-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--verified)' }}>{stats.totalFulfilled}</span>
           </div>
           <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Reputation Score</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#3b82f6', fontFamily: 'Outfit, sans-serif' }}>{stats.reputationScore} pts</span>
+            <span className="reputation-score-val" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--active)' }}>{stats.reputationScore} pts</span>
           </div>
         </div>
       )}
@@ -334,15 +335,15 @@ export default function DonorDashboard({ user }) {
       ) : (
         <div className="listings-grid">
           {ingredients.map((ing) => (
-            <div key={ing._id} className="ingredient-card glass-panel">
-              <div className="card-header">
+            <div key={ing._id} className={`ingredient-card glass-panel status-card-${ing.status}`}>
+              <div className="card-header" style={{ borderBottom: 'none', paddingBottom: '0.25rem' }}>
                 <div>
                   <h3 className="card-title">{ing.name}</h3>
                   <div className="card-category">{ing.category}</div>
                 </div>
-                <span className={`status-badge status-${ing.status}`}>
-                  {ing.status}
-                </span>
+              </div>
+              <div style={{ padding: '0 1.25rem 0.5rem 1.25rem' }}>
+                <CustodyRibbon status={ing.status} />
               </div>
               <div className="card-body">
                 <div className="info-item">
@@ -405,31 +406,31 @@ export default function DonorDashboard({ user }) {
               const isChecked = !!confirmedChecks[res._id];
 
               return (
-                <div key={res._id} className="ingredient-card glass-panel" style={{ border: isConfirmed ? '1px solid #10b981' : '1px solid var(--border-color)', height: 'fit-content' }}>
-                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <div key={res._id} className={`ingredient-card glass-panel status-card-${res.deliveryStatus}`} style={{ border: isConfirmed ? '1px solid var(--verified)' : '1px solid var(--border-color)', height: 'fit-content' }}>
+                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none', paddingBottom: '0.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3 className="card-title">{ing?.name || 'Unknown Ingredient'}</h3>
-                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.75rem' }}>
-                        {res.deliveryStatus.replace('_', ' ')}
-                      </span>
                     </div>
                     <div className="card-category" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
                       <span>{ing?.category || 'N/A'}</span>
-                      <span style={{ fontSize: '0.8rem', color: isConfirmed ? '#10b981' : '#f59e0b', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.8rem', color: isConfirmed ? 'var(--verified)' : 'var(--attention)', fontWeight: 600 }}>
                         {isConfirmed ? 'Code Verified' : 'Awaiting Verification'}
                       </span>
                     </div>
                   </div>
+                  <div style={{ padding: '0 1.25rem 0.5rem 1.25rem' }}>
+                    <CustodyRibbon deliveryStatus={res.deliveryStatus} />
+                  </div>
                   <div className="card-body">
                     <div className="info-item">
                       <span className="info-label">Reserved Quantity:</span>
-                      <span className="info-value" style={{ color: 'white', fontWeight: 700 }}>
+                      <span className="info-value">
                         {res.reservedQuantity} {ing?.unit}
                       </span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Pickup Deadline:</span>
-                      <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(res.expiresAt)}</span>
+                      <span className="info-value" style={{ color: 'var(--danger)' }}>{formatDate(res.expiresAt)}</span>
                     </div>
 
                     {res.deliveryStatus === 'pending' && (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import LeafletMap from '../components/LeafletMap';
+import CustodyRibbon from '../components/CustodyRibbon';
 
 export default function KitchenDashboard({ user }) {
   const [ingredients, setIngredients] = useState([]);
@@ -202,14 +203,14 @@ export default function KitchenDashboard({ user }) {
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '2rem', paddingBottom: '0.5rem' }}>
         <button 
           className={`nav-link ${activeTab === 'available' ? 'active' : ''}`}
-          style={{ background: 'none', border: 'none', color: activeTab === 'available' ? '#3b82f6' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', padding: '0.5rem 1rem' }}
+          style={{ background: 'none', border: 'none', color: activeTab === 'available' ? 'var(--active)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', padding: '0.5rem 1rem' }}
           onClick={() => setActiveTab('available')}
         >
           Available Surplus Food
         </button>
         <button 
           className={`nav-link ${activeTab === 'reservations' ? 'active' : ''}`}
-          style={{ background: 'none', border: 'none', color: activeTab === 'reservations' ? '#3b82f6' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', padding: '0.5rem 1rem' }}
+          style={{ background: 'none', border: 'none', color: activeTab === 'reservations' ? 'var(--active)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', padding: '0.5rem 1rem' }}
           onClick={() => setActiveTab('reservations')}
         >
           My Reservations
@@ -235,23 +236,25 @@ export default function KitchenDashboard({ user }) {
             </h3>
             <div className="listings-grid">
               {ingredients.map((ing) => (
-                <div key={ing._id} className="ingredient-card glass-panel">
-                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <div key={ing._id} className={`ingredient-card glass-panel status-card-${ing.status}`}>
+                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none', paddingBottom: '0.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <h3 className="card-title">{ing.name}</h3>
                       <span className="status-badge status-approved" style={{ fontSize: '0.7rem' }}>
-                        {ing.distance} km away
+                        {ing.distance} KM AWAY
                       </span>
                     </div>
                     <div className="card-category" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
                       <span>{ing.category}</span>
-                      <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>Approved</span>
                     </div>
+                  </div>
+                  <div style={{ padding: '0 1.25rem 0.5rem 1.25rem' }}>
+                    <CustodyRibbon status={ing.status} />
                   </div>
                   <div className="card-body">
                     <div className="info-item">
                       <span className="info-label">Available:</span>
-                      <span className="info-value" style={{ color: 'white', fontWeight: 700 }}>
+                      <span className="info-value">
                         {ing.quantity} {ing.unit}
                       </span>
                     </div>
@@ -261,7 +264,7 @@ export default function KitchenDashboard({ user }) {
                     </div>
                     <div className="info-item">
                       <span className="info-label">Expiry:</span>
-                      <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(ing.expiryDate)}</span>
+                      <span className="info-value" style={{ color: 'var(--danger)' }}>{formatDate(ing.expiryDate)}</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Pickup Deadline:</span>
@@ -305,25 +308,25 @@ export default function KitchenDashboard({ user }) {
               const req = res.requestRef;
               const ing = req?.ingredientRef;
               return (
-                <div key={res._id} className="ingredient-card glass-panel">
-                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <div key={res._id} className={`ingredient-card glass-panel status-card-${res.deliveryStatus}`}>
+                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none', paddingBottom: '0.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3 className="card-title">{ing?.name || 'Unknown Ingredient'}</h3>
-                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.75rem' }}>
-                        {res.deliveryStatus.replace('_', ' ')}
-                      </span>
                     </div>
                     <div className="card-category" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
                       <span>{ing?.category || 'N/A'}</span>
-                      <span style={{ fontSize: '0.80rem', color: req?.status === 'fulfilled' ? '#10b981' : 'var(--text-secondary)' }}>
+                      <span style={{ fontSize: '0.80rem', color: req?.status === 'fulfilled' ? 'var(--verified)' : 'var(--text-secondary)' }}>
                         Request: {req?.status}
                       </span>
                     </div>
                   </div>
+                  <div style={{ padding: '0 1.25rem 0.5rem 1.25rem' }}>
+                    <CustodyRibbon deliveryStatus={res.deliveryStatus} />
+                  </div>
                   <div className="card-body">
                     <div className="info-item">
                       <span className="info-label">Reserved Qty:</span>
-                      <span className="info-value" style={{ color: 'white', fontWeight: 700 }}>
+                      <span className="info-value">
                         {res.reservedQuantity} {ing?.unit || ''}
                       </span>
                     </div>
@@ -334,17 +337,17 @@ export default function KitchenDashboard({ user }) {
                     {req?.pickupMode === 'volunteer' && (
                       <div className="info-item">
                         <span className="info-label">Volunteer:</span>
-                        <span className="info-value" style={{ color: '#60a5fa' }}>{req?.volunteerName}</span>
+                        <span className="info-value" style={{ color: 'var(--active)', fontWeight: 600 }}>{req?.volunteerName}</span>
                       </div>
                     )}
                     <div className="info-item">
                       <span className="info-label">Expires At:</span>
-                      <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(res.expiresAt)}</span>
+                      <span className="info-value" style={{ color: 'var(--danger)' }}>{formatDate(res.expiresAt)}</span>
                     </div>
                     {res.pickupCode && (
-                      <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px dashed #3b82f6' }}>
-                        <span className="info-label" style={{ color: '#60a5fa' }}>Pickup Code (Share with collector):</span>
-                        <span className="info-value" style={{ color: 'white', fontWeight: 700, letterSpacing: '1px' }}>{res.pickupCode}</span>
+                      <div style={{ marginTop: '0.75rem', padding: '0.6rem', border: '1px solid var(--active)', borderRadius: '6px', background: 'rgba(37, 99, 235, 0.05)', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, fontFamily: 'IBM Plex Sans' }}>Authorized Pickup Code</div>
+                        <div className="pickup-code-val" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--active)', letterSpacing: '2px', marginTop: '0.2rem' }}>{res.pickupCode}</div>
                       </div>
                     )}
                   </div>

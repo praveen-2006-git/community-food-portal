@@ -149,5 +149,18 @@ router.get('/kitchens', async (req, res) => {
     res.status(500).json({ message: 'Internal server error while fetching kitchens.' });
   }
 });
+// GET /api/admin/network-ledger - Get all users and reputation scores for the admin ledger
+router.get('/network-ledger', async (req, res) => {
+  try {
+    const users = await User.find({ role: { $in: ['donor', 'soup_kitchen'] } })
+                            .select('name role reputationScore email')
+                            .sort({ reputationScore: -1 }); 
+    
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching network ledger:", error);
+    res.status(500).json({ message: "Failed to fetch reputation ledger" });
+  }
+});
 
 module.exports = router;

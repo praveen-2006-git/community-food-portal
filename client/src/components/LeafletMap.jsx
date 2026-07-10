@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 
 // Fix Leaflet default marker icon path resolution in bundlers
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+const customIcon = L.divIcon({
+  className: 'custom-map-pin-selection',
+  html: `<div style="background-color: #2563EB; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 3px #2563EB; margin: 5px;"></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
 });
 
 export default function LeafletMap({ lat, lng, onChange, readOnly = false, markerLabel = "Selected Location" }) {
@@ -33,7 +33,8 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
 
     // Create Marker
     const marker = L.marker([initialLat, initialLng], {
-      draggable: !readOnly
+      draggable: !readOnly,
+      icon: customIcon
     }).addTo(map);
     
     if (markerLabel) {
