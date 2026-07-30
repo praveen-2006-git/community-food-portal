@@ -12,7 +12,7 @@ router.get('/donor', authenticateJWT, authorizeRoles('donor'), async (req, res) 
     const totalIngredients = await Ingredient.countDocuments({ donorRef: req.user.id });
 
     // 2. Total requests fulfilled for this donor's ingredients
-    const myIngredients = await Ingredient.find({ donorRef: req.user.id });
+    const myIngredients = await Ingredient.find({ donorRef: req.user.id }).select('_id').lean();
     const myIngredientIds = myIngredients.map(ing => ing._id);
     
     const totalFulfilled = await Request.countDocuments({

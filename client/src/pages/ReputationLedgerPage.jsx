@@ -3,16 +3,12 @@ import ReputationLedger from '../components/ReputationLedger';
 
 export default function ReputationLedgerPage({ user }) {
   return (
-    <div className="main-content">
-      <div className="dashboard-header" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h1 className="dashboard-title" style={{ fontSize: '1.8rem', fontFamily: 'IBM Plex Serif, serif', fontWeight: 700 }}>
-            Network Reputation Ledger
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            System-wide organization reputation leaderboard and history logs.
-          </p>
-        </div>
+    <div>
+      <div style={{ marginBottom: '2.5rem' }}>
+        <h1 className="dashboard-title">Reputation Leaderboard</h1>
+        <p className="dashboard-subtitle" style={{ margin: 0 }}>
+          System-wide organization trust ranking and audit logs.
+        </p>
       </div>
 
       <ReputationLedger />

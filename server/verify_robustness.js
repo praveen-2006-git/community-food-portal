@@ -122,8 +122,8 @@ async function runTests() {
     console.log('Past expiry message:', pastExpiryData.message);
 
 
-    // --- TEST 3: pickupDeadline before expiryDate rejected ---
-    console.log('\nTEST 3: pickupDeadline before expiryDate...');
+    // --- TEST 3: pickupDeadline after expiryDate rejected ---
+    console.log('\nTEST 3: pickupDeadline after expiryDate...');
     const badDeadlineRes = await fetch(`${BASE_URL}/api/ingredients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
@@ -133,7 +133,7 @@ async function runTests() {
         quantity: 10,
         unit: 'kg',
         expiryDate: new Date(Date.now() + 5*24*60*60*1000),
-        pickupDeadline: new Date(Date.now() + 2*24*60*60*1000), // before expiry
+        pickupDeadline: new Date(Date.now() + 7*24*60*60*1000), // after expiry
         storageType: 'Ambient',
         location: { lat: 11.5, lng: 77.2 },
         donorDeclaration: true
@@ -202,13 +202,14 @@ async function runTests() {
 
     // --- TEST 6: Pending expired ingredient auto-flipped to expired by sweeper ---
     console.log('\nTEST 6: Pending expired listing sweeper check...');
-    // Create pending ingredient with past expiry date (bypassing route validation by inserting directly or using past date in db)
+    
+    // 1. Expired pending ingredient (no requests)
     const expiredPendingIng = new Ingredient({
       name: 'Expired Pending Apples',
       category: 'Fruits',
       quantity: 10,
       unit: 'kg',
-      expiryDate: new Date(Date.now() - 24*60*60*1000), // yesterday
+      expiryDate: new Date(Date.now() - 24*60*60*1000),
       pickupDeadline: new Date(Date.now() - 24*60*60*1000),
       storageType: 'Ambient',
       status: 'pending',
@@ -218,13 +219,96 @@ async function runTests() {
     });
     await expiredPendingIng.save({ validateBeforeSave: false });
 
-    console.log('Pending expired ingredient created with status:', expiredPendingIng.status);
+    // 2. Expired approved ingredient with a 'reserved' request & 'pending' reservation
+    const expiredIngWithReserved = new Ingredient({
+      name: 'Expired Approved Reserved Apples',
+      category: 'Fruits',
+      quantity: 10,
+      unit: 'kg',
+      expiryDate: new Date(Date.now() - 24*60*60*1000),
+      pickupDeadline: new Date(Date.now() - 24*60*60*1000),
+      storageType: 'Ambient',
+      status: 'approved',
+      donorRef: donorId,
+      location: { lat: 11.5, lng: 77.2 },
+      donorDeclaration: true
+    });
+    await expiredIngWithReserved.save({ validateBeforeSave: false });
 
-    // Run sweeper
+    const reqReserved = new Request({
+      soupKitchenRef: k1Data.user.id,
+      ingredientRef: expiredIngWithReserved._id,
+      requestedQuantity: 5,
+      status: 'reserved',
+      pickupMode: 'self'
+    });
+    await reqReserved.save();
+
+    const resPending = new Reservation({
+      requestRef: reqReserved._id,
+      reservedQuantity: 5,
+      expiresAt: expiredIngWithReserved.pickupDeadline,
+      deliveryStatus: 'pending',
+      pickupCode: '999999'
+    });
+    await resPending.save();
+
+    // 3. Expired approved ingredient with a 'fulfilled' request & 'delivered' reservation
+    const expiredIngWithFulfilled = new Ingredient({
+      name: 'Expired Approved Fulfilled Apples',
+      category: 'Fruits',
+      quantity: 10,
+      unit: 'kg',
+      expiryDate: new Date(Date.now() - 24*60*60*1000),
+      pickupDeadline: new Date(Date.now() - 24*60*60*1000),
+      storageType: 'Ambient',
+      status: 'approved',
+      donorRef: donorId,
+      location: { lat: 11.5, lng: 77.2 },
+      donorDeclaration: true
+    });
+    await expiredIngWithFulfilled.save({ validateBeforeSave: false });
+
+    const reqFulfilled = new Request({
+      soupKitchenRef: k1Data.user.id,
+      ingredientRef: expiredIngWithFulfilled._id,
+      requestedQuantity: 5,
+      status: 'fulfilled',
+      pickupMode: 'self'
+    });
+    await reqFulfilled.save();
+
+    const resDelivered = new Reservation({
+      requestRef: reqFulfilled._id,
+      reservedQuantity: 5,
+      expiresAt: expiredIngWithFulfilled.pickupDeadline,
+      deliveryStatus: 'delivered',
+      pickupCode: '888888'
+    });
+    await resDelivered.save();
+
+    console.log('Mixed batch test documents saved.');
+
+    // Run sweeper bulk queries
     await runAutoExpireSweeper();
 
+    // Assertions
     const checkedIng = await Ingredient.findById(expiredPendingIng._id);
-    console.log('Pending expired ingredient status after sweeper (expected expired):', checkedIng.status);
+    console.log('Pending expired ingredient status (expected expired):', checkedIng.status);
+
+    const checkedReservedIng = await Ingredient.findById(expiredIngWithReserved._id);
+    const checkedReqReserved = await Request.findById(reqReserved._id);
+    const checkedResPending = await Reservation.findById(resPending._id);
+    console.log('Reserved ingredient status (expected expired):', checkedReservedIng.status);
+    console.log('Associated Request status (expected expired):', checkedReqReserved.status);
+    console.log('Associated Reservation deliveryStatus (expected expired):', checkedResPending.deliveryStatus);
+
+    const checkedFulfilledIng = await Ingredient.findById(expiredIngWithFulfilled._id);
+    const checkedReqFulfilled = await Request.findById(reqFulfilled._id);
+    const checkedResDelivered = await Reservation.findById(resDelivered._id);
+    console.log('Fulfilled ingredient status (expected expired):', checkedFulfilledIng.status);
+    console.log('Associated Fulfilled Request status (expected fulfilled):', checkedReqFulfilled.status);
+    console.log('Associated Delivered Reservation deliveryStatus (expected delivered):', checkedResDelivered.deliveryStatus);
 
 
     // --- TEST 7: Admin cannot approve expired ingredient ---
@@ -287,7 +371,9 @@ async function runTests() {
 
     // Cleanup
     console.log('\nCleaning up test documents...');
-    await Ingredient.deleteMany({ _id: { $in: [ingDoc._id, expiredPendingIng._id, expiredPendingIng2._id] } });
+    await Ingredient.deleteMany({ _id: { $in: [ingDoc._id, expiredPendingIng._id, expiredPendingIng2._id, expiredIngWithReserved._id, expiredIngWithFulfilled._id] } });
+    await Request.deleteMany({ ingredientRef: { $in: [expiredIngWithReserved._id, expiredIngWithFulfilled._id] } });
+    await Reservation.deleteMany({ requestRef: { $in: [reqReserved._id, reqFulfilled._id] } });
     console.log('Cleanup complete.');
 
   } catch (error) {

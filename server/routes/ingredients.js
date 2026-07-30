@@ -39,8 +39,8 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
       return res.status(400).json({ message: 'Expiry date must be today or later.' });
     }
 
-    if (pickup.getTime() < expiry.getTime()) {
-      return res.status(400).json({ message: 'Pickup deadline must be on or after expiry date.' });
+    if (pickup.getTime() > expiry.getTime()) {
+      return res.status(400).json({ message: 'Pickup deadline must be on or before expiry date.' });
     }
 
     if (!APPROVED_CATEGORIES.includes(category)) {
@@ -79,7 +79,9 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
 // GET /api/ingredients/my - Get all listings owned by the logged-in donor
 router.get('/my', async (req, res) => {
   try {
-    const ingredients = await Ingredient.find({ donorRef: req.user.id }).sort({ createdAt: -1 });
+    const ingredients = await Ingredient.find({ donorRef: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(200);
     res.status(200).json(ingredients);
   } catch (error) {
     console.error('Get my ingredients error:', error);

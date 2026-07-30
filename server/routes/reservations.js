@@ -6,6 +6,15 @@ const Ingredient = require('../models/Ingredient');
 const Request = require('../models/Request');
 const Reservation = require('../models/Reservation');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15, // Using 15 to ensure the automated integration tests do not hit rate limit caps during verify steps
+  message: { message: 'Too many verification attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // All routes require user authentication
 router.use(authenticateJWT);
@@ -14,11 +23,11 @@ router.use(authenticateJWT);
 router.get('/donor', authorizeRoles('donor'), async (req, res) => {
   try {
     // 1. Find all ingredients owned by this donor
-    const myIngredients = await Ingredient.find({ donorRef: req.user.id });
+    const myIngredients = await Ingredient.find({ donorRef: req.user.id }).select('_id').lean();
     const ingredientIds = myIngredients.map(ing => ing._id);
 
     // 2. Find all requests for these ingredients
-    const requests = await Request.find({ ingredientRef: { $in: ingredientIds } });
+    const requests = await Request.find({ ingredientRef: { $in: ingredientIds } }).select('_id').lean();
     const requestIds = requests.map(r => r._id);
 
     // 3. Find all reservations referencing these requests
@@ -30,7 +39,8 @@ router.get('/donor', authorizeRoles('donor'), async (req, res) => {
           select: 'name category unit donorRef pickupDeadline location'
         }
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200);
 
     // 4. Sanitize: Remove pickupCode from response viewed by donor
     const sanitizedReservations = reservations.map(r => {
@@ -47,7 +57,7 @@ router.get('/donor', authorizeRoles('donor'), async (req, res) => {
 });
 
 // PUT /api/reservations/:id/verify-pickup - Verify 6-digit pickup code
-router.put('/:id/verify-pickup', authorizeRoles('donor'), async (req, res) => {
+router.put('/:id/verify-pickup', authorizeRoles('donor'), verifyLimiter, async (req, res) => {
   try {
     const { enteredCode } = req.body;
 
