@@ -5,6 +5,7 @@ const Ingredient = require('../models/Ingredient');
 const Request = require('../models/Request');
 const Reservation = require('../models/Reservation');
 const IssueReport = require('../models/IssueReport');
+const AuditLog = require('../models/AuditLog');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
 
 // All routes require user authentication
@@ -116,6 +117,16 @@ router.put('/:id/resolve', authorizeRoles('admin'), async (req, res) => {
     }
 
     await report.save();
+
+    // Create AuditLog entry
+    const auditLog = new AuditLog({
+      adminRef: req.user.id,
+      action: 'resolve_dispute',
+      targetId: report._id,
+      details: `Resolved dispute to status: ${report.status}.`
+    });
+    await auditLog.save();
+
     res.status(200).json(report);
   } catch (error) {
     console.error('Resolve issue report error:', error);

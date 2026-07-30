@@ -33,7 +33,7 @@ async function runTests() {
     console.log('\nUploading new ingredient...');
     const now = new Date();
     const expiryDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-    const pickupDeadline = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const pickupDeadline = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000);
 
     const createRes = await fetch(`${BASE_URL}/api/ingredients`, {
       method: 'POST',
@@ -107,7 +107,8 @@ async function runTests() {
       requestRef: mockRequest._id,
       reservedQuantity: 15,
       expiresAt: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000),
-      deliveryStatus: 'pending'
+      deliveryStatus: 'pending',
+      pickupCode: '123456'
     });
     await mockReservation.save();
     console.log('Mock Request and active Reservation created.');

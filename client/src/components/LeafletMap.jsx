@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 
 // Fix Leaflet default marker icon path resolution in bundlers
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+const customIcon = L.divIcon({
+  className: 'custom-map-pin-selection',
+  html: `<div style="background-color: #2563EB; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 3px #2563EB; margin: 5px;"></div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
 });
 
 export default function LeafletMap({ lat, lng, onChange, readOnly = false, markerLabel = "Selected Location" }) {
@@ -33,13 +33,55 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
 
     // Create Marker
     const marker = L.marker([initialLat, initialLng], {
-      draggable: !readOnly
+      draggable: !readOnly,
+      keyboard: !readOnly,
+      icon: customIcon
     }).addTo(map);
     
     if (markerLabel) {
       marker.bindPopup(markerLabel).openPopup();
     }
     markerRef.current = marker;
+
+    // Attach keyboard event handler to marker element for custom navigation
+    const markerEl = marker.getElement();
+    if (!readOnly && markerEl) {
+      markerEl.setAttribute('tabindex', '0');
+      markerEl.setAttribute('role', 'button');
+      markerEl.setAttribute('aria-label', `${markerLabel || 'Selected Location'} pin. Press arrow keys to adjust marker position.`);
+      
+      markerEl.addEventListener('keydown', (e) => {
+        const { lat: currLat, lng: currLng } = marker.getLatLng();
+        let step = 0.0005; // precise movement delta
+        if (e.shiftKey) step = 0.0025; // larger jumps
+        
+        let moved = false;
+        let newLat = currLat;
+        let newLng = currLng;
+
+        if (e.key === 'ArrowUp') {
+          newLat += step;
+          moved = true;
+        } else if (e.key === 'ArrowDown') {
+          newLat -= step;
+          moved = true;
+        } else if (e.key === 'ArrowLeft') {
+          newLng -= step;
+          moved = true;
+        } else if (e.key === 'ArrowRight') {
+          newLng += step;
+          moved = true;
+        }
+
+        if (moved) {
+          e.preventDefault();
+          marker.setLatLng([newLat, newLng]);
+          if (onChange) {
+            onChange(parseFloat(newLat.toFixed(6)), parseFloat(newLng.toFixed(6)));
+          }
+        }
+      });
+    }
 
     // Handle marker drag event (if not readOnly)
     if (!readOnly) {
@@ -84,6 +126,12 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
   }, [lat, lng]);
 
   return (
-    <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+    <div 
+      ref={mapContainerRef} 
+      tabIndex={0} 
+      aria-label="Interactive map. Focus pin to move marker with arrow keys." 
+      className="leaflet-map-container"
+      style={{ width: '100%', height: '100%', outline: 'none' }} 
+    />
   );
 }

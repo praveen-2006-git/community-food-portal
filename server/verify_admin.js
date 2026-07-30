@@ -73,7 +73,7 @@ async function runTests() {
         quantity: 12,
         unit: 'cans',
         expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-        pickupDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        pickupDeadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
         location: { lat: 11.5034, lng: 77.2444 },
         donorDeclaration: true
@@ -96,7 +96,7 @@ async function runTests() {
         quantity: 2,
         unit: 'kg',
         expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-        pickupDeadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+        pickupDeadline: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
         location: { lat: 11.5034, lng: 77.2444 },
         donorDeclaration: true

@@ -1,6 +1,7 @@
 const { app, server } = require('./index');
 const mongoose = require('mongoose');
 const Ingredient = require('./models/Ingredient');
+const User = require('./models/User');
 
 const PORT = process.env.PORT || 5000;
 const BASE_URL = `http://localhost:${PORT}`;
@@ -11,6 +12,12 @@ async function runTests() {
   try {
     await delay(2000);
     console.log('\n--- STARTING ANTI-MALPRACTICE CONSTRAINTS TESTS ---');
+
+    // Reset test donor reputation & active status to prevent cross-test pollution
+    await User.updateOne(
+      { email: 'donor1@portal.com' },
+      { $set: { reputationScore: 100, isActive: true } }
+    );
 
     // 1. Log in as Donor
     const donorLoginRes = await fetch(`${BASE_URL}/api/auth/login`, {

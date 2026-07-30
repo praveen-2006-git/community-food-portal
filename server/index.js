@@ -20,7 +20,19 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-app.use(cors());
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  console.error('\n================================================================');
+  console.error('CRITICAL ERROR: FRONTEND_URL environment variable is missing.');
+  console.error('This is required in production to restrict CORS strictly.');
+  console.error('================================================================\n');
+  throw new Error('FRONTEND_URL environment variable is missing in production');
+}
+
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : (process.env.FRONTEND_URL || '*')
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes

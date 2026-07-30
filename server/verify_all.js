@@ -6,8 +6,11 @@ console.log('       COMMUNITY FOOD PORTAL - FULL SUITE AUTOMATED TESTING     ');
 console.log('================================================================\n');
 
 const testScripts = [
+  'verify_schemas.js',
   'verify_seed.js',
   'verify_auth.js',
+  'verify_ingredients.js',
+  'verify_admin.js',
   'verify_kitchen.js',
   'verify_map.js',
   'verify_stats.js',
@@ -15,7 +18,12 @@ const testScripts = [
   'verify_pickup.js',
   'verify_issues.js',
   'verify_deactivation.js',
-  'verify_robustness.js'
+  'verify_robustness.js',
+  'verify_geo_hook.js',
+  'verify_geo_migration.js',
+  'verify_pagination.js',
+  'verify_cors.js',
+  'verify_audit_log_and_rate_limit.js'
 ];
 
 let allPassed = true;

@@ -34,36 +34,66 @@ router.get('/ingredients', async (req, res) => {
     const kitchenLat = req.user.location?.lat;
     const kitchenLng = req.user.location?.lng;
 
-    // Fetch approved ingredients with available quantity and populate isActive status of donor
-    const ingredients = await Ingredient.find({
+    const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Fetch active donor IDs to filter deactivated users in DB query
+    const activeDonors = await User.find({ role: 'donor', isActive: { $ne: false } }).select('_id').lean();
+    const activeDonorIds = activeDonors.map(d => d._id);
+
+    const query = {
       status: 'approved',
-      quantity: { $gt: 0 }
-    }).populate('donorRef', 'name email reputationScore isActive');
+      quantity: { $gt: 0 },
+      donorRef: { $in: activeDonorIds }
+    };
 
-    // Filter out ingredients from deactivated donors
-    const activeIngredients = ingredients.filter(ing => ing.donorRef && ing.donorRef.isActive !== false);
+    // Separate geo query from counting query to prevent countDocuments aggregation restrictions on $near
+    const countQuery = { ...query };
 
-    if (kitchenLat === undefined || kitchenLng === undefined) {
-      // User doesn't have coordinates (e.g., admin or incomplete profile), bypass distance calculations
-      return res.status(200).json(activeIngredients.map(ing => ing.toObject()));
+    if (kitchenLat !== undefined && kitchenLng !== undefined) {
+      query.locationGeo = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [kitchenLng, kitchenLat]
+          }
+        }
+      };
     }
 
-    // Map ingredients to include calculated Haversine distance
-    const ingredientsWithDistance = activeIngredients.map(ing => {
-      const ingLat = ing.location.lat;
-      const ingLng = ing.location.lng;
-      const dist = getHaversineDistance(kitchenLat, kitchenLng, ingLat, ingLng);
-      
-      // Convert mongoose doc to plain JS object to attach distance
-      const plainIng = ing.toObject();
-      plainIng.distance = parseFloat(dist.toFixed(3)); // 3 decimal places
-      return plainIng;
+    const total = await Ingredient.countDocuments(countQuery);
+    let queryExec = Ingredient.find(query).populate('donorRef', 'name email reputationScore isActive');
+    
+    if (isPaginated) {
+      queryExec = queryExec.skip(skip).limit(limit);
+    }
+    
+    const ingredients = await queryExec.lean();
+
+    // Map ingredients to include calculated Haversine distance if coordinates are available
+    const ingredientsWithDistance = ingredients.map(ing => {
+      let dist = null;
+      if (kitchenLat !== undefined && kitchenLng !== undefined && ing.location) {
+        dist = getHaversineDistance(kitchenLat, kitchenLng, ing.location.lat, ing.location.lng);
+      }
+      return {
+        ...ing,
+        distance: dist !== null ? parseFloat(dist.toFixed(3)) : null
+      };
     });
 
-    // Sort nearest first (distance ascending)
-    ingredientsWithDistance.sort((a, b) => a.distance - b.distance);
-
-    res.status(200).json(ingredientsWithDistance);
+    if (isPaginated) {
+      res.status(200).json({
+        docs: ingredientsWithDistance,
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      });
+    } else {
+      res.status(200).json(ingredientsWithDistance);
+    }
   } catch (error) {
     console.error('Fetch kitchen ingredients error:', error);
     res.status(500).json({ message: 'Internal server error while fetching ingredients.' });
@@ -174,7 +204,7 @@ router.post('/ingredients/:id/request', async (req, res) => {
 // GET /api/kitchen/reservations - Get all reservations for the logged-in kitchen's requests
 router.get('/reservations', async (req, res) => {
   try {
-    const requests = await Request.find({ soupKitchenRef: req.user.id });
+    const requests = await Request.find({ soupKitchenRef: req.user.id }).select('_id').lean();
     const requestIds = requests.map(r => r._id);
 
     const reservations = await Reservation.find({ requestRef: { $in: requestIds } })
@@ -185,7 +215,8 @@ router.get('/reservations', async (req, res) => {
           select: 'name category unit donorRef pickupDeadline location'
         }
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200);
 
     res.status(200).json(reservations);
   } catch (error) {

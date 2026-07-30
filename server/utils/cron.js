@@ -13,42 +13,54 @@ const runAutoExpireSweeper = async () => {
         { expiryDate: { $lt: now } },
         { pickupDeadline: { $lt: now } }
       ]
-    });
+    }).select('_id name').lean();
 
-    if (expiredIngredients.length > 0) {
-      console.log(`[Auto-Expire Scheduler] Found ${expiredIngredients.length} ingredients past their pickup deadlines.`);
+    if (expiredIngredients.length === 0) {
+      return;
     }
 
-    for (const ingredient of expiredIngredients) {
-      // 1. Mark ingredient status as expired
-      ingredient.status = 'expired';
-      await ingredient.save();
-      console.log(`- Ingredient "${ingredient.name}" (${ingredient._id}) status set to 'expired'.`);
+    console.log(`[Auto-Expire Scheduler] Found ${expiredIngredients.length} ingredients past their pickup deadlines.`);
+    const expiredIngredientIds = expiredIngredients.map(ing => ing._id);
 
-      // 2. Find any associated Requests with status 'reserved' (meaning they were not picked up/fulfilled)
-      const associatedRequests = await Request.find({
-        ingredientRef: ingredient._id,
-        status: 'reserved'
+    // 1. Bulk mark ingredients status as expired
+    await Ingredient.updateMany(
+      { _id: { $in: expiredIngredientIds } },
+      { $set: { status: 'expired' } }
+    );
+    expiredIngredients.forEach(ing => {
+      console.log(`- Ingredient "${ing.name}" (${ing._id}) status set to 'expired'.`);
+    });
+
+    // 2. Find any associated Requests with status 'reserved' (meaning they were not picked up/fulfilled)
+    const associatedRequests = await Request.find({
+      ingredientRef: { $in: expiredIngredientIds },
+      status: 'reserved'
+    }).select('_id').lean();
+
+    if (associatedRequests.length > 0) {
+      const requestIds = associatedRequests.map(r => r._id);
+
+      // 3. Bulk update associated Requests to 'expired'
+      await Request.updateMany(
+        { _id: { $in: requestIds } },
+        { $set: { status: 'expired' } }
+      );
+      associatedRequests.forEach(req => {
+        console.log(`  - Request (${req._id}) status set to 'expired'.`);
       });
 
-      for (const req of associatedRequests) {
-        req.status = 'expired';
-        await req.save();
-        console.log(`  - Request (${req._id}) status set to 'expired'.`);
-
-        // 3. Find any corresponding Reservations with deliveryStatus 'pending' and mark as 'expired'
-        const updatedReservations = await Reservation.updateMany(
-          {
-            requestRef: req._id,
-            deliveryStatus: 'pending'
-          },
-          {
-            $set: { deliveryStatus: 'expired' }
-          }
-        );
-        if (updatedReservations.modifiedCount > 0) {
-          console.log(`    - Mark ${updatedReservations.modifiedCount} pending reservations as 'expired'.`);
+      // 4. Bulk mark corresponding Reservations with deliveryStatus 'pending' as 'expired'
+      const updatedReservations = await Reservation.updateMany(
+        {
+          requestRef: { $in: requestIds },
+          deliveryStatus: 'pending'
+        },
+        {
+          $set: { deliveryStatus: 'expired' }
         }
+      );
+      if (updatedReservations.modifiedCount > 0) {
+        console.log(`    - Mark ${updatedReservations.modifiedCount} pending reservations as 'expired'.`);
       }
     }
   } catch (error) {
