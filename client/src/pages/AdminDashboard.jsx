@@ -257,31 +257,84 @@ export default function AdminDashboard({ user }) {
 
       {/* KPI Stats Row */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Ingredients</span>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{stats.totalIngredients}</div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Ingredients</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.25rem' }}>{stats.totalIngredients}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>🍲</div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.75rem', fontSize: '1.5rem' }}>🍲</div>
+
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Fulfilled Requests</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--verified)', marginTop: '0.25rem' }}>{stats.totalFulfilled}</div>
+              </div>
+              <div style={{ background: 'var(--verified-glow)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>📦</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Food Donors</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--active)', marginTop: '0.25rem' }}>{stats.activeDonors}</div>
+              </div>
+              <div style={{ background: 'var(--active-glow)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>🏪</div>
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Fulfilled Requests</span>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--verified)', marginTop: '0.25rem' }}>{stats.totalFulfilled}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Prevented Food Waste</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--verified)', marginTop: '0.25rem' }}>{stats.preventedWasteKg || 0} kg</div>
+              </div>
+              <div style={{ background: 'var(--verified-glow)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>♻️</div>
             </div>
-            <div style={{ background: 'var(--verified-glow)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '12px', padding: '0.75rem', fontSize: '1.5rem' }}>📦</div>
+
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expiring in 24 Hours</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: stats.expiringCount > 0 ? 'var(--attention)' : 'var(--text-primary)', marginTop: '0.25rem' }}>{stats.expiringCount || 0} listings</div>
+              </div>
+              <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>🚨</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Uncollected / Rejected Claims</span>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: stats.uncollectedCount > 0 ? 'var(--danger)' : 'var(--text-primary)', marginTop: '0.25rem' }}>{stats.uncollectedCount || 0} logs</div>
+              </div>
+              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', padding: '0.5rem', fontSize: '1.25rem' }}>🗑️</div>
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Food Donors</span>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--active)', marginTop: '0.25rem' }}>{stats.activeDonors}</div>
+          {/* Coverage Gaps Panel */}
+          {stats.coverageGaps && stats.coverageGaps.length > 0 && (
+            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2.5rem', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--attention)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                ⚠️ Coverage Gaps Identified (Unfulfilled Canteen Needs)
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                The following ingredient needs declared by local soup kitchens currently lack sufficient approved donor surplus supply:
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                {stats.coverageGaps.map((gap, idx) => (
+                  <div key={idx} style={{ padding: '0.75rem 1rem', background: 'rgba(245, 158, 11, 0.02)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                    <strong style={{ fontSize: '0.9rem', color: 'white', display: 'block' }}>{gap.name}</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      Needed: {gap.needed} units | Supplied: {gap.supplied} units
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--attention)', fontWeight: 700, marginTop: '0.15rem' }}>
+                      Deficit: -{gap.gap} units
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ background: 'var(--active-glow)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', padding: '0.75rem', fontSize: '1.5rem' }}>🏪</div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {error && <div className="badge badge-rejected" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', textTransform: 'none', display: 'block', textAlign: 'center' }}>{error}</div>}
@@ -361,9 +414,22 @@ export default function AdminDashboard({ user }) {
                   <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
                     {selectedIngredient.name}
                   </h3>
-                  <span className="badge badge-pending" style={{ marginTop: '0.4rem', display: 'inline-block' }}>
-                    {selectedIngredient.category}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem' }}>
+                    <span className="badge badge-pending">
+                      {selectedIngredient.category}
+                    </span>
+                    <span className="badge" style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--border)',
+                      fontSize: '0.72rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      {selectedIngredient.dietaryType === 'veg' ? '🟢 Veg' : selectedIngredient.dietaryType === 'egg' ? '🟡 Egg' : '🟤 Non-Veg'}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>

@@ -12,6 +12,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runTests() {
+  let hasFailed = false;
   try {
     await delay(2000);
     console.log('\n--- STARTING DEACTIVATION & REACTIVATION TESTS ---');
@@ -38,7 +39,11 @@ async function runTests() {
     const registerData = await registerRes.json();
     const donorToken = registerData.token;
     const donorId = registerData.user?.id;
-    console.log('Donor registered with reputationScore (expected 100):', registerData.user?.reputationScore);
+    
+    // Set initial reputation score to 80 so listings start as pending rather than approved
+    await User.findByIdAndUpdate(donorId, { reputationScore: 80 });
+
+    console.log('Donor registered with reputationScore (expected 80): 80');
     console.log('Donor isActive (expected true):', registerData.user?.isActive);
 
     // Kitchen 1 Login
@@ -84,7 +89,9 @@ async function runTests() {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const rejectData = await rejectRes.json();
-    console.log('Reputation score after rejection (expected 95):', rejectData.donorReputationScore);
+    console.log('Reputation score after rejection (expected 75):', rejectData.donorReputationScore);
+    if (rejectRes.status !== 200) throw new Error(`Reject status expected 200, got ${rejectRes.status}`);
+    if (rejectData.donorReputationScore !== 75) throw new Error(`Reputation score after rejection expected 75, got ${rejectData.donorReputationScore}`);
 
     // 3. Test 2: Issue report upheld -> Deducts 15 points
     console.log('\nCreating listing to test issue report upheld...');
@@ -144,8 +151,10 @@ async function runTests() {
     });
 
     const donorUser = await User.findById(donorId);
-    console.log('Reputation score after UPHOLD (expected 80 = 95 - 15):', donorUser.reputationScore);
+    console.log('Reputation score after UPHOLD (expected 60 = 75 - 15):', donorUser.reputationScore);
     console.log('Donor isActive status (expected true):', donorUser.isActive);
+    if (donorUser.reputationScore !== 60) throw new Error(`Reputation score expected 60, got ${donorUser.reputationScore}`);
+    if (donorUser.isActive !== true) throw new Error(`Donor isActive expected true, got ${donorUser.isActive}`);
 
     // 4. Test 3: Drop reputation below 40 -> triggers auto deactivation
     console.log('\nDeducting score further to trigger deactivation...');
@@ -169,8 +178,10 @@ async function runTests() {
     }
 
     const deactUser = await User.findById(donorId);
-    console.log('Reputation score after deactivation loop (expected 35):', deactUser.reputationScore);
+    console.log('Reputation score after deactivation loop (expected 15):', deactUser.reputationScore);
     console.log('Donor isActive status (expected false):', deactUser.isActive);
+    if (deactUser.reputationScore !== 15) throw new Error(`Reputation score expected 15, got ${deactUser.reputationScore}`);
+    if (deactUser.isActive !== false) throw new Error(`Donor isActive expected false, got ${deactUser.isActive}`);
 
     // 5. Test 4: Block deactivated donor from listing ingredient (should fail with 403)
     console.log('\nTesting listing creation while deactivated...');
@@ -192,6 +203,7 @@ async function runTests() {
     const blockData = await blockRes.json();
     console.log('Creation response status (expected 403):', blockRes.status);
     console.log('Creation response message:', blockData.message);
+    if (blockRes.status !== 403) throw new Error(`Blocked creation status expected 403, got ${blockRes.status}`);
 
     // 6. Test 5: Admin reactivates donor manually -> sets isActive = true, reputationScore = 60
     console.log('\nAdmin reactivating donor manually...');
@@ -203,6 +215,9 @@ async function runTests() {
     console.log('Reactivation response status (expected 200):', reactRes.status);
     console.log('Donor isActive (expected true):', reactData.donor?.isActive);
     console.log('Donor reputationScore (expected 60):', reactData.donor?.reputationScore);
+    if (reactRes.status !== 200) throw new Error(`Reactivate status expected 200, got ${reactRes.status}`);
+    if (reactData.donor?.isActive !== true) throw new Error('Donor isActive expected true');
+    if (reactData.donor?.reputationScore !== 60) throw new Error('Donor reputationScore expected 60');
 
     // 7. Test 6: Reactivated donor can list ingredients normally again (should succeed)
     console.log('\nTesting listing creation post-reactivation...');
@@ -222,6 +237,7 @@ async function runTests() {
       })
     });
     console.log('Post-reactivation listing creation status (expected 201):', postReactRes.status);
+    if (postReactRes.status !== 201) throw new Error(`Post-reactivation listing creation status expected 201, got ${postReactRes.status}`);
 
     console.log('\n--- ALL DEACTIVATION & REACTIVATION TESTS PASSED ---');
 
@@ -236,6 +252,7 @@ async function runTests() {
 
   } catch (error) {
     console.error('Test run failed with error:', error);
+    hasFailed = true;
   } finally {
     server.close(async () => {
       console.log('Express server shut down.');
@@ -245,7 +262,7 @@ async function runTests() {
       } catch (err) {
         console.error('Error closing Mongoose:', err);
       }
-      process.exit(0);
+      process.exit(hasFailed ? 1 : 0);
     });
   }
 }

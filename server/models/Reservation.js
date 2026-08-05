@@ -34,6 +34,18 @@ const reservationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     required: true
+  },
+  receivedQuantity: {
+    type: Number
+  },
+  condition: {
+    type: String,
+    enum: ['good', 'partial', 'rejected'],
+    default: 'good'
+  },
+  discrepancyLogged: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

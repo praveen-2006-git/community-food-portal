@@ -11,6 +11,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runTests() {
+  let hasFailed = false;
   try {
     await delay(2000);
     console.log('\n--- STARTING INGREDIENT FLOW INTEGRATION TESTS ---');
@@ -29,11 +30,14 @@ async function runTests() {
     const token = loginData.token;
     console.log('Logged in successfully. Token available:', !!token);
 
+    // Update donor reputation to 80 so they don't bypass admin approval
+    await User.findOneAndUpdate({ email: 'donor1@portal.com' }, { reputationScore: 80 });
+
     // 2. Upload a new ingredient
     console.log('\nUploading new ingredient...');
     const now = new Date();
     const expiryDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-    const pickupDeadline = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const pickupDeadline = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
 
     const createRes = await fetch(`${BASE_URL}/api/ingredients`, {
       method: 'POST',
@@ -57,6 +61,8 @@ async function runTests() {
     console.log('Create Response Status (expected 201):', createRes.status);
     console.log('Created Ingredient ID:', createdIngredient._id);
     console.log('Initial Status (expected pending):', createdIngredient.status);
+    if (createRes.status !== 201) throw new Error(`Create Response Status expected 201, got ${createRes.status}`);
+    if (createdIngredient.status !== 'pending') throw new Error(`Initial Status expected pending, got ${createdIngredient.status}`);
 
     // 3. View own listings
     console.log('\nFetching own listings...');
@@ -67,6 +73,7 @@ async function runTests() {
     console.log('Listings Count:', myListings.length);
     const addedListing = myListings.find(i => i._id === createdIngredient._id);
     console.log('Found newly created ingredient in list:', !!addedListing);
+    if (!addedListing) throw new Error('Found newly created ingredient in list: expected true, got false');
 
     // 4. Edit listing
     console.log('\nEditing ingredient listing...');
@@ -85,6 +92,8 @@ async function runTests() {
     console.log('Edit Response Status (expected 200):', editRes.status);
     console.log('Updated Quantity (expected 45):', updatedIngredient.quantity);
     console.log('Updated Storage Type (expected Chilled (Vented)):', updatedIngredient.storageType);
+    if (editRes.status !== 200) throw new Error(`Edit Response Status expected 200, got ${editRes.status}`);
+    if (updatedIngredient.quantity !== 45) throw new Error(`Updated Quantity expected 45, got ${updatedIngredient.quantity}`);
 
     // 5. Test deletion block: create active reservation
     console.log('\nTesting Deletion Block Business Rule...');
@@ -122,6 +131,7 @@ async function runTests() {
     const deleteBlockedData = await deleteBlockedRes.json();
     console.log('Delete Response Status (expected 400):', deleteBlockedRes.status);
     console.log('Delete Response Message:', deleteBlockedData.message);
+    if (deleteBlockedRes.status !== 400) throw new Error(`Delete Response Status expected 400, got ${deleteBlockedRes.status}`);
 
     // 6. Test successful deletion: clean reservation and requests
     console.log('\nTesting Successful Deletion...');
@@ -136,15 +146,18 @@ async function runTests() {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     console.log('Delete Response Status (expected 200):', deleteSuccessRes.status);
+    if (deleteSuccessRes.status !== 200) throw new Error(`Delete Response Status expected 200, got ${deleteSuccessRes.status}`);
 
     // Verify it is gone from the database
     const findIngredient = await Ingredient.findById(createdIngredient._id);
     console.log('Ingredient exists in DB (expected null):', findIngredient);
+    if (findIngredient !== null) throw new Error('Ingredient was not deleted from DB');
 
     console.log('\n--- TESTS COMPLETED SUCCESSFULLY ---');
 
   } catch (error) {
     console.error('Test run failed with error:', error);
+    hasFailed = true;
   } finally {
     server.close(async () => {
       console.log('Express server shut down.');
@@ -154,7 +167,7 @@ async function runTests() {
       } catch (err) {
         console.error('Error closing Mongoose:', err);
       }
-      process.exit(0);
+      process.exit(hasFailed ? 1 : 0);
     });
   }
 }

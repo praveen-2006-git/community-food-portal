@@ -37,6 +37,9 @@ async function runTests() {
     const donorData = await registerRes.json();
     const donorToken = donorData.token;
 
+    // Set donor reputation score to 80 so listings go to pending status
+    await User.findByIdAndUpdate(donorData.user.id, { reputationScore: 80 });
+
     // Login Admin
     console.log('Logging in admin...');
     const adminLoginRes = await fetch(`${BASE_URL}/api/auth/login`, {
@@ -65,7 +68,9 @@ async function runTests() {
       })
     });
     const ingredient = await createRes.json();
-    console.log('Listing created with status:', ingredient.status);
+    console.log('Listing created with status (expected pending):', ingredient.status);
+    if (createRes.status !== 201) throw new Error(`Create Response Status expected 201, got ${createRes.status}`);
+    if (ingredient.status !== 'pending') throw new Error(`Created ingredient status expected pending, got ${ingredient.status}`);
 
     // Approve the listing
     console.log('Admin approving ingredient...');
@@ -74,11 +79,13 @@ async function runTests() {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const approveData = await approveRes.json();
-    console.log('Approve response status:', approveRes.status);
-
+    console.log('Approve response status (expected 200):', approveRes.status);
+    if (approveRes.status !== 200) throw new Error(`Approve status expected 200, got ${approveRes.status}`);
+ 
     // Verify AuditLog for approval
     const approveAudit = await AuditLog.findOne({ action: 'approve_ingredient', targetId: ingredient._id });
-    console.log('Approve AuditLog generated:', !!approveAudit);
+    console.log('Approve AuditLog generated (expected true):', !!approveAudit);
+    if (!approveAudit) throw new Error('Approve AuditLog was not generated');
     if (approveAudit) {
       console.log('Approve Audit details:', approveAudit.details);
     }
@@ -112,7 +119,8 @@ async function runTests() {
       }
     }
 
-    console.log('Rate limiter activated correctly:', hitRateLimit);
+    console.log('Rate limiter activated correctly (expected true):', hitRateLimit);
+    if (!hitRateLimit) throw new Error('Rate limit was not hit on verification endpoint');
 
     // Reactivate Donor (requires deactivating first)
     const donorUser = await User.findOne({ email: donorEmail });
@@ -124,11 +132,13 @@ async function runTests() {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
-    console.log('Reactivate response status:', reactivateRes.status);
-
+    console.log('Reactivate response status (expected 200):', reactivateRes.status);
+    if (reactivateRes.status !== 200) throw new Error(`Reactivate status expected 200, got ${reactivateRes.status}`);
+ 
     // Verify AuditLog for reactivation
     const reactivateAudit = await AuditLog.findOne({ action: 'reactivate_donor', targetId: donorUser._id });
-    console.log('Reactivate AuditLog generated:', !!reactivateAudit);
+    console.log('Reactivate AuditLog generated (expected true):', !!reactivateAudit);
+    if (!reactivateAudit) throw new Error('Reactivate AuditLog was not generated');
     if (reactivateAudit) {
       console.log('Reactivate Audit details:', reactivateAudit.details);
     }

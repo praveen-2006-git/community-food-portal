@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_12345';
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, location } = req.body;
+    const { name, email, password, role, location, storageCapabilities } = req.body;
 
     // Validate request body
     if (!name || !email || !password || !role || !location) {
@@ -40,14 +40,22 @@ router.post('/register', async (req, res) => {
       passwordHash,
       role,
       location,
-      reputationScore: role === 'donor' ? 100 : undefined
+      reputationScore: role === 'donor' ? 100 : undefined,
+      storageCapabilities: role === 'soup_kitchen' ? (storageCapabilities || []) : undefined
     });
 
     await newUser.save();
 
     // Create token
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email, role: newUser.role, location: newUser.location },
+      { 
+        id: newUser._id, 
+        email: newUser.email, 
+        role: newUser.role, 
+        location: newUser.location,
+        locationGeo: newUser.locationGeo || { type: 'Point', coordinates: [newUser.location.lng, newUser.location.lat] },
+        storageCapabilities: newUser.storageCapabilities || []
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -61,7 +69,8 @@ router.post('/register', async (req, res) => {
         role: newUser.role,
         location: newUser.location,
         reputationScore: newUser.reputationScore,
-        isActive: newUser.isActive
+        isActive: newUser.isActive,
+        storageCapabilities: newUser.storageCapabilities
       }
     });
 
@@ -94,7 +103,14 @@ router.post('/login', async (req, res) => {
 
     // Create token
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role, location: user.location },
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role, 
+        location: user.location,
+        locationGeo: user.locationGeo || { type: 'Point', coordinates: [user.location.lng, user.location.lat] },
+        storageCapabilities: user.storageCapabilities || []
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -108,13 +124,53 @@ router.post('/login', async (req, res) => {
         role: user.role,
         location: user.location,
         reputationScore: user.reputationScore,
-        isActive: user.isActive
+        isActive: user.isActive,
+        storageCapabilities: user.storageCapabilities || []
       }
     });
 
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Internal server error during login.' });
+  }
+});
+
+const { authenticateJWT } = require('../middleware/auth');
+
+// PUT /api/auth/profile
+router.put('/profile', authenticateJWT, async (req, res) => {
+  try {
+    const { typicalDonationSchedule, preferredPickupWindow, typicalIngredientCategories, storageCapabilities } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (typicalDonationSchedule !== undefined) user.typicalDonationSchedule = typicalDonationSchedule;
+    if (preferredPickupWindow !== undefined) user.preferredPickupWindow = preferredPickupWindow;
+    if (typicalIngredientCategories !== undefined) user.typicalIngredientCategories = typicalIngredientCategories;
+    if (storageCapabilities !== undefined) user.storageCapabilities = storageCapabilities;
+
+    await user.save();
+    res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        location: user.location,
+        reputationScore: user.reputationScore,
+        isActive: user.isActive,
+        storageCapabilities: user.storageCapabilities || [],
+        typicalDonationSchedule: user.typicalDonationSchedule || [],
+        preferredPickupWindow: user.preferredPickupWindow || '',
+        typicalIngredientCategories: user.typicalIngredientCategories || []
+      }
+    });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ message: 'Internal server error while updating profile.' });
   }
 });
 

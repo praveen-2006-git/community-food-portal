@@ -9,6 +9,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runTests() {
+  let hasFailed = false;
   try {
     await delay(2000);
     console.log('\n--- STARTING ANTI-MALPRACTICE CONSTRAINTS TESTS ---');
@@ -41,8 +42,8 @@ async function runTests() {
 
     // 3. Create an ingredient as donor
     console.log('\nCreating test listing...');
-    const originalExpiry = new Date('2026-07-20T00:00:00.000Z');
-    const originalPickup = new Date('2026-07-18T00:00:00.000Z');
+    const originalExpiry = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+    const originalPickup = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
 
     const createRes = await fetch(`${BASE_URL}/api/ingredients`, {
       method: 'POST',
@@ -62,10 +63,11 @@ async function runTests() {
     const ingredient = await createRes.json();
     const ingId = ingredient._id;
     console.log('Listing created with ID:', ingId);
+    if (createRes.status !== 201) throw new Error(`Create expected 201, got ${createRes.status}`);
 
     // 4. Test: Donor tries to change expiryDate (should be blocked)
     console.log('\nTesting Donor trying to alter expiryDate...');
-    const malExpiry = new Date('2026-07-25T00:00:00.000Z');
+    const malExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const donorUpdateRes = await fetch(`${BASE_URL}/api/ingredients/${ingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
@@ -76,10 +78,11 @@ async function runTests() {
     const donorUpdateData = await donorUpdateRes.json();
     console.log('Donor Update Response Status (expected 400):', donorUpdateRes.status);
     console.log('Donor Update Response Message:', donorUpdateData.message);
+    if (donorUpdateRes.status !== 400) throw new Error(`Donor update of expiry expected 400, got ${donorUpdateRes.status}`);
 
     // 5. Test: Donor tries to change pickupDeadline (should be blocked)
     console.log('\nTesting Donor trying to alter pickupDeadline...');
-    const malPickup = new Date('2026-07-22T00:00:00.000Z');
+    const malPickup = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
     const donorUpdateRes2 = await fetch(`${BASE_URL}/api/ingredients/${ingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
@@ -90,6 +93,7 @@ async function runTests() {
     const donorUpdateData2 = await donorUpdateRes2.json();
     console.log('Donor Update Response Status (expected 400):', donorUpdateRes2.status);
     console.log('Donor Update Response Message:', donorUpdateData2.message);
+    if (donorUpdateRes2.status !== 400) throw new Error(`Donor update of pickup expected 400, got ${donorUpdateRes2.status}`);
 
     // 6. Test: Donor updates other fields normally (should succeed)
     console.log('\nTesting Donor updating normal fields (quantity, storageType)...');
@@ -105,11 +109,12 @@ async function runTests() {
     console.log('Donor Normal Update Status (expected 200):', donorNormalUpdateRes.status);
     console.log('Updated Quantity in response:', normalData.quantity);
     console.log('Updated StorageType in response:', normalData.storageType);
+    if (donorNormalUpdateRes.status !== 200) throw new Error(`Donor normal update expected 200, got ${donorNormalUpdateRes.status}`);
 
     // 7. Test: Admin corrects date fields (should succeed)
     console.log('\nTesting Admin correcting dates...');
-    const correctedExpiry = new Date('2026-07-28T00:00:00.000Z');
-    const correctedPickup = new Date('2026-07-26T00:00:00.000Z');
+    const correctedExpiry = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000);
+    const correctedPickup = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const adminUpdateRes = await fetch(`${BASE_URL}/api/ingredients/${ingId}`, {
       method: 'PUT',
@@ -123,6 +128,7 @@ async function runTests() {
     console.log('Admin Correction Status (expected 200):', adminUpdateRes.status);
     console.log('New Expiry in response:', new Date(adminDataUpdate.expiryDate).toISOString());
     console.log('New Pickup in response:', new Date(adminDataUpdate.pickupDeadline).toISOString());
+    if (adminUpdateRes.status !== 200) throw new Error(`Admin update expected 200, got ${adminUpdateRes.status}`);
 
     // 8. DB verification (to double check immutable logic saved it via collection override)
     const dbIngredient = await Ingredient.findById(ingId);
@@ -139,6 +145,7 @@ async function runTests() {
 
   } catch (error) {
     console.error('Test run failed with error:', error);
+    hasFailed = true;
   } finally {
     server.close(async () => {
       console.log('Express server shut down.');
@@ -148,7 +155,7 @@ async function runTests() {
       } catch (err) {
         console.error('Error closing Mongoose:', err);
       }
-      process.exit(0);
+      process.exit(hasFailed ? 1 : 0);
     });
   }
 }

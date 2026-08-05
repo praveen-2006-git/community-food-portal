@@ -269,17 +269,43 @@ body.light-mode .top-header {
 }
 
 .search-input {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   color: var(--text-primary);
   padding: 0.45rem 2rem 0.45rem 0.75rem;
   font-size: 0.85rem;
   width: 100%;
+  transition: all 150ms ease;
+}
+.search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+.search-input:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.4);
 }
 .search-input:focus {
   outline: none;
   border-color: var(--active);
+  box-shadow: 0 0 0 3px var(--active-glow);
+  background: var(--bg);
+}
+body.light-mode .search-input {
+  background: #FFFFFF;
+  border: 1.5px solid #475569;
+  color: #0F172A;
+}
+body.light-mode .search-input::placeholder {
+  color: #64748B;
+}
+body.light-mode .search-input:hover:not(:disabled) {
+  border-color: #0F172A;
+}
+body.light-mode .search-input:focus {
+  border-color: var(--active);
+  box-shadow: 0 0 0 3px var(--active-glow);
+  background: #FFFFFF;
 }
 
 .search-kbd {
@@ -509,8 +535,8 @@ body.light-mode .btn-danger:hover {
 }
 
 .form-control {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   color: var(--text-primary);
   padding: 0.65rem 0.85rem;
@@ -519,14 +545,55 @@ body.light-mode .btn-danger:hover {
   transition: all 150ms ease;
   width: 100%;
 }
-body.light-mode .form-control {
-  background: #FFFFFF;
+.form-control::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.9;
 }
-
+.form-control:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.4);
+}
 .form-control:focus {
   outline: none;
   border-color: var(--active);
   box-shadow: 0 0 0 3px var(--active-glow);
+  background: var(--bg);
+}
+.form-control:disabled {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.form-control.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-glow);
+}
+
+body.light-mode .form-control {
+  background: #FFFFFF;
+  border: 1.5px solid #475569;
+  color: #0F172A;
+}
+body.light-mode .form-control::placeholder {
+  color: #64748B;
+}
+body.light-mode .form-control:hover:not(:disabled) {
+  border-color: #0F172A;
+}
+body.light-mode .form-control:focus {
+  border-color: var(--active);
+  box-shadow: 0 0 0 3px var(--active-glow);
+  background: #FFFFFF;
+}
+body.light-mode .form-control:disabled {
+  background: #E2E8F0;
+  border-color: #94A3B8;
+  color: #64748B;
+}
+body.light-mode .form-control.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-glow);
 }
 
 /* Lists and Grids */
@@ -1335,18 +1402,7 @@ body.light-mode .notification-item.unread {
 
 /* Collection Basket Styles */
 
-/* Visual thumbnail banner */
-.listing-thumbnail-banner {
-  height: 110px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  border-radius: 12px 12px 0 0;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.15);
-}
+/* Thumbnail banner styling removed */
 
 /* Floating Basket Trigger Button */
 .floating-basket-btn {
@@ -1496,17 +1552,7 @@ body.light-mode .notification-item.unread {
   background: var(--danger-glow);
 }
 
-.basket-item-thumbnail {
-  width: 60px;
-  height: 60px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  flex-shrink: 0;
-  color: white;
-}
+/* Basket item thumbnail styling removed */
 
 .basket-item-details {
   flex: 1;

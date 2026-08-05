@@ -12,9 +12,10 @@ const BASE_URL = `http://localhost:${PORT}`;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runTests() {
+  let hasFailed = false;
   try {
     await delay(2000);
-    console.log('\n--- STARTING SOUP KITCHEN & AUTO-EXPIRY AUTOMATED TESTS ---');
+    console.log('\n--- STARTING SOUP KITCHEN FLOW INTEGRATION TESTS ---');
 
     // 1. Log in
     // Donor 1 Login
@@ -166,7 +167,8 @@ async function runTests() {
       storageType: 'Chilled',
       status: 'approved',
       donorRef: donorData.user.id,
-      location: { lat: 11.5034, lng: 77.2444 }
+      location: { lat: 11.5034, lng: 77.2444 },
+      donorDeclaration: true
     });
     await expiredIngDoc.save();
 
@@ -210,6 +212,7 @@ async function runTests() {
 
   } catch (error) {
     console.error('Test run failed with error:', error);
+    hasFailed = true;
   } finally {
     server.close(async () => {
       console.log('Express server shut down.');
@@ -219,7 +222,7 @@ async function runTests() {
       } catch (err) {
         console.error('Error closing Mongoose:', err);
       }
-      process.exit(0);
+      process.exit(hasFailed ? 1 : 0);
     });
   }
 }

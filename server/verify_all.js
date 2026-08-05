@@ -23,6 +23,7 @@ const testScripts = [
   'verify_geo_migration.js',
   'verify_pagination.js',
   'verify_cors.js',
+  'verify_needs_and_inventory.js',
   'verify_audit_log_and_rate_limit.js'
 ];
 

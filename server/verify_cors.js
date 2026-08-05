@@ -6,6 +6,11 @@ async function runTests() {
   // Save current env variables to restore later
   const originalNodeEnv = process.env.NODE_ENV;
   const originalFrontendUrl = process.env.FRONTEND_URL;
+  const originalPort = process.env.PORT;
+
+  // Set isolated port to avoid address-in-use conflicts and request hijacking
+  process.env.PORT = '5055';
+  const PORT = process.env.PORT;
 
   // Clear require cache for server index so we can re-evaluate it
   const clearServerCache = () => {
@@ -43,7 +48,7 @@ async function runTests() {
     console.log('\nTEST 3: Verifying CORS origin rejection / acceptance...');
     
     // Request from ALLOWED origin
-    const allowedRes = await fetch('http://localhost:5000', {
+    const allowedRes = await fetch(`http://localhost:${PORT}`, {
       headers: { 'Origin': 'https://my-production-portal.org' }
     });
     const allowedCorsHeader = allowedRes.headers.get('access-control-allow-origin');
@@ -51,7 +56,7 @@ async function runTests() {
     assert.strictEqual(allowedCorsHeader, process.env.FRONTEND_URL, 'Should allow access-control-allow-origin matching FRONTEND_URL');
 
     // Request from DISALLOWED origin
-    const disallowedRes = await fetch('http://localhost:5000', {
+    const disallowedRes = await fetch(`http://localhost:${PORT}`, {
       headers: { 'Origin': 'https://evil-hacker.com' }
     });
     const disallowedCorsHeader = disallowedRes.headers.get('access-control-allow-origin');
@@ -71,6 +76,7 @@ async function runTests() {
     // Restore original env variables
     process.env.NODE_ENV = originalNodeEnv;
     process.env.FRONTEND_URL = originalFrontendUrl;
+    process.env.PORT = originalPort;
     clearServerCache();
   }
 

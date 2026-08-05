@@ -6,7 +6,7 @@ const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
 
-const APPROVED_CATEGORIES = ['Vegetables', 'Fruits', 'Bakery', 'Dairy', 'Grains', 'Meat', 'Canned Goods', 'Spices'];
+const APPROVED_CATEGORIES = ['protein', 'dairy', 'vegetable', 'grain', 'oil', 'condiment', 'bakery', 'other'];
 
 // All routes here require user to be authenticated and have the 'donor' or 'admin' role
 router.use(authenticateJWT);
@@ -15,7 +15,7 @@ router.use(authorizeRoles('donor', 'admin'));
 // POST /api/ingredients - Upload/Create a new ingredient listing
 router.post('/', authorizeRoles('donor'), async (req, res) => {
   try {
-    const { name, category, quantity, unit, expiryDate, pickupDeadline, storageType, location, donorDeclaration } = req.body;
+    const { name, category, quantity, unit, expiryDate, pickupDeadline, storageType, location, donorDeclaration, allergens, prepState, dietaryType } = req.body;
 
     const donorUser = await User.findById(req.user.id);
     if (!donorUser || donorUser.isActive === false) {
@@ -43,7 +43,19 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
       return res.status(400).json({ message: 'Pickup deadline must be on or before expiry date.' });
     }
 
-    if (!APPROVED_CATEGORIES.includes(category)) {
+    const categoryMap = {
+      'vegetables': 'vegetable',
+      'fruits': 'vegetable',
+      'bakery': 'bakery',
+      'dairy': 'dairy',
+      'grains': 'grain',
+      'meat': 'protein',
+      'canned goods': 'other',
+      'spices': 'condiment'
+    };
+    const lowerCat = (category || '').toLowerCase().trim();
+    const mappedCategory = categoryMap[lowerCat] || (APPROVED_CATEGORIES.includes(lowerCat) ? lowerCat : null);
+    if (!mappedCategory) {
       return res.status(400).json({ message: `Invalid category. Must be one of: ${APPROVED_CATEGORIES.join(', ')}` });
     }
 
@@ -51,22 +63,33 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
       return res.status(400).json({ message: 'Location lat and lng must be numbers.' });
     }
 
+    const isBypass = donorUser.reputationScore > 80;
     const newIngredient = new Ingredient({
       name,
-      category,
+      category: mappedCategory,
       quantity,
       unit,
       expiryDate,
       pickupDeadline,
       storageType,
-      status: 'pending', // Default status is pending
+      status: isBypass ? 'approved' : 'pending',
       donorRef: req.user.id,
       location,
-      donorDeclaration
+      donorDeclaration,
+      allergens: allergens || ['none'],
+      prepState: prepState || 'raw',
+      dietaryType: dietaryType || 'veg'
     });
 
-    await newIngredient.save();
-    res.status(201).json(newIngredient);
+    const savedIngredient = await newIngredient.save();
+
+    // Change 5B: Notify nearby soup kitchens if approved via trust bypass
+    if (savedIngredient.status === 'approved') {
+      const { notifyNearbyKitchens } = require('../utils/notifier');
+      await notifyNearbyKitchens(savedIngredient).catch(err => console.error('Bypass notification error:', err));
+    }
+
+    res.status(201).json(savedIngredient);
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ message: error.message });
@@ -92,7 +115,7 @@ router.get('/my', async (req, res) => {
 // PUT /api/ingredients/:id - Update an ingredient listing
 router.put('/:id', async (req, res) => {
   try {
-    const { name, category, quantity, unit, expiryDate, pickupDeadline, storageType, location, status } = req.body;
+    const { name, category, quantity, unit, expiryDate, pickupDeadline, storageType, location, status, dietaryType, allergens, prepState } = req.body;
     
     const ingredient = await Ingredient.findById(req.params.id);
     if (!ingredient) {
@@ -181,6 +204,9 @@ router.put('/:id', async (req, res) => {
         return res.status(400).json({ message: 'Invalid status.' });
       }
     }
+    if (dietaryType) ingredient.dietaryType = dietaryType;
+    if (allergens) ingredient.allergens = allergens;
+    if (prepState) ingredient.prepState = prepState;
 
     await ingredient.save();
     const responseObj = ingredient.toObject();
@@ -237,6 +263,18 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete ingredient error:', error);
     res.status(500).json({ message: 'Internal server error while deleting ingredient.' });
+  }
+});
+
+// GET /api/ingredients/active-needs - Get all active weekly needs declared by kitchens
+router.get('/active-needs', async (req, res) => {
+  try {
+    const WeeklyNeed = require('../models/WeeklyNeed');
+    const needs = await WeeklyNeed.find().populate('soupKitchenRef', 'name location');
+    res.status(200).json(needs);
+  } catch (error) {
+    console.error('Fetch active needs error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching active needs.' });
   }
 });
 

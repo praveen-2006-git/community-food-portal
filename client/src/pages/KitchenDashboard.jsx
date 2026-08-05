@@ -6,7 +6,31 @@ import { useToast, useSearch } from '../App';
 export default function KitchenDashboard({ user }) {
   const [ingredients, setIngredients] = useState([]);
   const [reservations, setReservations] = useState([]);
-  const [activeTab, setActiveTab] = useState('available'); // 'available' or 'reservations'
+  const [activeTab, setActiveTab] = useState('available'); // 'available', 'reservations', or 'needs_inventory'
+  
+  // Weekly Needs State
+  const [needs, setNeeds] = useState([]);
+  const [needIngredientName, setNeedIngredientName] = useState('Atta');
+  const [needIngredientPreset, setNeedIngredientPreset] = useState('Atta');
+  const [needQuantity, setNeedQuantity] = useState('');
+  const [needUnit, setNeedUnit] = useState('kg');
+  const [needPriority, setNeedPriority] = useState('normal');
+
+  // Kitchen Inventory State
+  const [inventory, setInventory] = useState([]);
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [showConsumeModal, setShowConsumeModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+
+  // Consume Log State
+  const [consumeItemName, setConsumeItemName] = useState('');
+  const [consumeQuantity, setConsumeQuantity] = useState('');
+
+  // Adjust Stock State
+  const [adjustItemName, setAdjustItemName] = useState('');
+  const [adjustStockQuantity, setAdjustStockQuantity] = useState('');
+  const [adjustUnit, setAdjustUnit] = useState('kg');
+  const [adjustMinThreshold, setAdjustMinThreshold] = useState(5);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,12 +43,18 @@ export default function KitchenDashboard({ user }) {
   const [actionPending, setActionPending] = useState(false);
   const { addToast } = useToast();
   const { searchQuery } = useSearch();
+  const [dietaryFilter, setDietaryFilter] = useState('all'); // 'all', 'veg', 'non-veg', 'egg'
 
   // Collection Basket State
   const [basket, setBasket] = useState([]);
   const [showBasketDrawer, setShowBasketDrawer] = useState(false);
 
-  // Category visual thumbnail helpers
+  // Notifications State
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Category visual thumbnail helper removed
+
   const getCategoryEmoji = (category) => {
     const cat = (category || '').toLowerCase();
     if (cat.includes('veg')) return '🥦';
@@ -53,6 +83,35 @@ export default function KitchenDashboard({ user }) {
     if (cat.includes('grain') || cat.includes('rice') || cat.includes('pasta')) return 'badge-reserved';
     if (cat.includes('dairy') || cat.includes('milk')) return 'badge-reserved';
     return 'badge-expired';
+  };
+
+  const renderDietaryIcon = (type) => {
+    const t = (type || 'veg').toLowerCase();
+    const color = t === 'veg' ? '#10b981' : t === 'egg' ? '#eab308' : '#b45309';
+    const label = t === 'veg' ? 'Veg' : t === 'egg' ? 'Egg' : 'Non-Veg';
+    
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+        <div style={{ 
+          width: '14px', 
+          height: '14px', 
+          border: `2px solid ${color}`, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          borderRadius: '3px',
+          padding: '1px'
+        }}>
+          <div style={{ 
+            width: '6px', 
+            height: '6px', 
+            backgroundColor: color, 
+            borderRadius: '50%' 
+          }} />
+        </div>
+        <span>{label}</span>
+      </div>
+    );
   };
 
   // Load and save basket in localStorage
@@ -161,7 +220,11 @@ export default function KitchenDashboard({ user }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://localhost:5000/api/kitchen/ingredients?page=${page}&limit=${limit}`, {
+      let url = `http://localhost:5000/api/kitchen/ingredients?page=${page}&limit=${limit}`;
+      if (dietaryFilter !== 'all') {
+        url += `&dietaryType=${dietaryFilter}`;
+      }
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -192,13 +255,211 @@ export default function KitchenDashboard({ user }) {
     }
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setNotifications(data);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/kitchen/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      }
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
+  };
+
+  const fetchNeeds = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/needs', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setNeeds(data);
+    } catch (err) {
+      console.error('Error fetching weekly needs:', err);
+    }
+  };
+
+  const fetchInventory = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/inventory', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setInventory(data);
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+    }
+  };
+
+  const handleNeedSubmit = async (e) => {
+    e.preventDefault();
+    setActionPending(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/needs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ingredientName: needIngredientName,
+          quantity: parseFloat(needQuantity),
+          unit: needUnit,
+          priority: needPriority
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to submit need.');
+      
+      addToast('Weekly need declared successfully!', 'success');
+      setNeedQuantity('');
+      fetchNeeds();
+    } catch (err) {
+      addToast(err.message || 'Submission failed.', 'error');
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleNeedDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this need declaration?')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/kitchen/needs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete need.');
+      
+      addToast('Need declaration removed.', 'info');
+      fetchNeeds();
+    } catch (err) {
+      addToast(err.message || 'Deletion failed.', 'error');
+    }
+  };
+
+  const handleConsumeSubmit = async (e) => {
+    e.preventDefault();
+    if (!consumeItemName || !consumeQuantity) return;
+    setActionPending(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/inventory/consume', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: consumeItemName,
+          quantity: parseFloat(consumeQuantity)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to log consumption.');
+      
+      addToast('Daily consumption logged successfully!', 'success');
+      setShowConsumeModal(false);
+      setConsumeQuantity('');
+      fetchInventory();
+    } catch (err) {
+      addToast(err.message || 'Consumption log failed.', 'error');
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleAdjustSubmit = async (e) => {
+    e.preventDefault();
+    if (!adjustItemName || !adjustStockQuantity || !adjustUnit) return;
+    setActionPending(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/kitchen/inventory/adjust', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: adjustItemName,
+          quantity: parseFloat(adjustStockQuantity),
+          unit: adjustUnit,
+          minThreshold: parseFloat(adjustMinThreshold)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to adjust inventory.');
+      
+      addToast('Inventory adjusted successfully!', 'success');
+      setShowAdjustModal(false);
+      setAdjustStockQuantity('');
+      fetchInventory();
+    } catch (err) {
+      addToast(err.message || 'Adjustment failed.', 'error');
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const handleOpenConsumeModal = (item) => {
+    setConsumeItemName(item.name);
+    setConsumeQuantity('');
+    setShowConsumeModal(true);
+  };
+
+  const handleOpenAdjustModal = (item) => {
+    if (item) {
+      setAdjustItemName(item.name);
+      setAdjustStockQuantity(item.quantity);
+      setAdjustUnit(item.unit);
+      setAdjustMinThreshold(item.minThreshold || 5);
+    } else {
+      setAdjustItemName('');
+      setAdjustStockQuantity('');
+      setAdjustUnit('kg');
+      setAdjustMinThreshold(5);
+    }
+    setShowAdjustModal(true);
+  };
+
+  const handleNeedPresetChange = (preset) => {
+    setNeedIngredientPreset(preset);
+    if (preset !== 'Other') {
+      setNeedIngredientName(preset);
+    } else {
+      setNeedIngredientName('');
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'available') {
       fetchIngredients();
-    } else {
+    } else if (activeTab === 'reservations') {
       fetchReservations();
+    } else if (activeTab === 'needs_inventory') {
+      fetchNeeds();
+      fetchInventory();
     }
-  }, [activeTab, page]);
+  }, [activeTab, page, dietaryFilter]);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleOpenRequestModal = (ing) => {
     setSelectedIngredient(ing);
@@ -473,6 +734,53 @@ export default function KitchenDashboard({ user }) {
             Welcome back, {user?.name}. Browse nearby surplus and manage active pickups.
           </p>
         </div>
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem' }}
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            🔔 Notifications
+            {notifications.filter(n => !n.isRead).length > 0 && (
+              <span className="badge badge-attention" style={{ position: 'absolute', top: '-10px', right: '-10px', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', padding: 0 }}>
+                {notifications.filter(n => !n.isRead).length}
+              </span>
+            )}
+          </button>
+          
+          {showNotifications && (
+            <div className="glass-panel" style={{ position: 'absolute', right: 0, top: '45px', width: '360px', zIndex: 1000, padding: '1rem', maxHeight: '400px', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                <span>Matched Shipments</span>
+                <button className="btn btn-secondary" style={{ padding: '0.1rem 0.4rem', fontSize: '0.75rem' }} onClick={() => setShowNotifications(false)}>Close</button>
+              </h4>
+              {notifications.length === 0 ? (
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', margin: 0, textAlign: 'center', padding: '1rem' }}>No matched shipments nearby.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {notifications.map(n => (
+                    <div 
+                      key={n._id} 
+                      style={{ 
+                        padding: '0.75rem', 
+                        borderRadius: '6px', 
+                        background: n.isRead ? 'rgba(255,255,255,0.02)' : 'rgba(99, 102, 241, 0.15)', 
+                        borderLeft: n.isRead ? '3px solid transparent' : '3px solid var(--primary)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => markAsRead(n._id)}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)' }}>{n.message}</p>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', display: 'block', marginTop: '0.25rem' }}>
+                        {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {n.isRead ? 'Read' : 'Mark as Read'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -489,6 +797,12 @@ export default function KitchenDashboard({ user }) {
         >
           My Reservations
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'needs_inventory' ? 'active' : ''}`}
+          onClick={() => { setPage(1); setActiveTab('needs_inventory'); }}
+        >
+          Needs & Inventory
+        </button>
       </div>
 
       {error && <div className="badge badge-rejected" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', textTransform: 'none', display: 'block', textAlign: 'center' }}>{error}</div>}
@@ -497,37 +811,58 @@ export default function KitchenDashboard({ user }) {
 
       {/* Available Surplus View */}
       {activeTab === 'available' && !loading && (
-        ingredients.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🍃</div>
-            <h2>No Surplus Food Available</h2>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>There are currently no approved surplus items within your region.</p>
+        <div>
+          {/* Dietary Filter Bar */}
+          <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Dietary Filter:</span>
+              {['all', 'veg', 'non-veg', 'egg'].map(type => (
+                <button
+                  key={type}
+                  className={`btn ${dietaryFilter === type ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                  onClick={() => { setPage(1); setDietaryFilter(type); }}
+                >
+                  {type === 'all' && 'All'}
+                  {type === 'veg' && '🟢 Veg'}
+                  {type === 'non-veg' && '🟤 Non-Veg'}
+                  {type === 'egg' && '🟡 Egg'}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+              Compliance: <span style={{ color: 'var(--verified)', fontWeight: 600 }}>FSSAI Save Food Share Food</span>
+            </div>
           </div>
-        ) : filteredIngredients.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
-            <h2>No Matching Surplus Items</h2>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>Try searching for a different keyword or category.</p>
-          </div>
-        ) : (
-          <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Nearby Surplus Inventories (Nearest First)
-            </h3>
+
+          {ingredients.length === 0 ? (
+            <div className="glass-panel" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🍃</div>
+              <h2>No Surplus Food Available</h2>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>There are currently no approved surplus items within your region.</p>
+            </div>
+          ) : filteredIngredients.length === 0 ? (
+            <div className="glass-panel" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
+              <h2>No Matching Surplus Items</h2>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.95rem' }}>Try searching for a different keyword or category.</p>
+            </div>
+          ) : (
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '1.5rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Nearby Surplus Inventories (Nearest First)
+              </h3>
             <div className="listings-grid">
               {filteredIngredients.map((ing) => (
                 <div key={ing._id} className="ingredient-card">
-                  <div 
-                    className="listing-thumbnail-banner" 
-                    style={{ background: getCategoryGradient(ing.category) }}
-                  >
-                    {getCategoryEmoji(ing.category)}
-                  </div>
                   <div className="card-header" style={{ borderBottom: 'none', padding: '1.25rem 1.25rem 0.5rem 1.25rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span className="badge badge-approved" style={{ alignSelf: 'flex-start', fontSize: '0.65rem', fontWeight: 800 }}>
-                        📍 {ing.distance ? `${ing.distance.toFixed(1)} km away` : 'Nearby'}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="badge badge-approved" style={{ fontSize: '0.65rem', fontWeight: 800 }}>
+                          📍 {ing.distance ? `${ing.distance.toFixed(1)} km away` : 'Nearby'}
+                        </span>
+                        {renderDietaryIcon(ing.dietaryType)}
+                      </div>
                       <h3 className="card-title" style={{ fontSize: '1.1rem', marginTop: '0.15rem' }}>{ing.name}</h3>
                     </div>
                     <span className={`badge ${getCategoryBadgeClass(ing.category)}`} style={{ alignSelf: 'flex-start' }}>
@@ -608,8 +943,9 @@ export default function KitchenDashboard({ user }) {
               </button>
             </div>
           </div>
-        )
-      )}
+        )}
+      </div>
+    )}
 
       {/* Reservations Tab View */}
       {activeTab === 'reservations' && !loading && (
@@ -731,6 +1067,204 @@ export default function KitchenDashboard({ user }) {
             })}
           </div>
         )
+      )}
+
+      {/* Needs & Inventory view */}
+      {activeTab === 'needs_inventory' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
+          
+          {/* Section 1: Weekly Needs Board */}
+          <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>📋 Weekly Needs Board</h2>
+            
+            <form onSubmit={handleNeedSubmit} style={{ marginBottom: '1.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
+              <div className="form-group">
+                <label className="form-label">Ingredient Needed</label>
+                <select 
+                  className="form-control" 
+                  value={needIngredientPreset} 
+                  onChange={e => handleNeedPresetChange(e.target.value)}
+                  required
+                >
+                  <option value="Atta">Atta</option>
+                  <option value="Rice">Rice</option>
+                  <option value="Dal">Dal</option>
+                  <option value="Cooking Oil">Cooking Oil</option>
+                  <option value="Onions">Onions</option>
+                  <option value="Spices">Spices</option>
+                  <option value="Vegetables">Vegetables</option>
+                  <option value="Packaged Goods">Packaged Goods</option>
+                  <option value="Other">Other (Specify below)</option>
+                </select>
+                {needIngredientPreset === 'Other' && (
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    style={{ marginTop: '0.5rem' }} 
+                    required 
+                    value={needIngredientName} 
+                    onChange={e => setNeedIngredientName(e.target.value)} 
+                    placeholder="Enter ingredient name" 
+                  />
+                )}
+              </div>
+              <div className="form-row" style={{ marginTop: '0.75rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Quantity</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    className="form-control" 
+                    required 
+                    value={needQuantity} 
+                    onChange={e => setNeedQuantity(e.target.value)} 
+                    placeholder="10" 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Unit</label>
+                  <select 
+                    className="form-control" 
+                    value={needUnit} 
+                    onChange={e => setNeedUnit(e.target.value)}
+                    required
+                  >
+                    <option value="kg">kg</option>
+                    <option value="L">L</option>
+                    <option value="packets">packets</option>
+                    <option value="pieces">pieces</option>
+                    <option value="dozen">dozen</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label">Priority</label>
+                <select 
+                  className="form-control" 
+                  value={needPriority} 
+                  onChange={e => setNeedPriority(e.target.value)}
+                >
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgent (Immediate Need)</option>
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.5rem' }} disabled={actionPending}>
+                Declare Weekly Need
+              </button>
+            </form>
+
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>Active Declarations</h3>
+            {needs.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>No weekly needs currently declared.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {needs.map(n => (
+                  <div key={n._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                    <div>
+                      <span style={{ fontWeight: 700 }}>{n.ingredientName}</span>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        Target: {n.quantity} {n.unit} | Priority: 
+                        <span style={{ 
+                          color: n.priority === 'urgent' ? 'var(--danger)' : n.priority === 'normal' ? 'var(--active)' : 'var(--text-tertiary)',
+                          marginLeft: '0.25rem',
+                          fontWeight: 700
+                        }}>{n.priority}</span>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-danger" 
+                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }} 
+                      onClick={() => handleNeedDelete(n._id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Kitchen Inventory Tracking */}
+          <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>📦 Stock Inventory</h2>
+              <button 
+                className="btn btn-primary" 
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                onClick={() => handleOpenAdjustModal(null)}
+              >
+                + Add Item
+              </button>
+            </div>
+
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Search kitchen inventory..." 
+              style={{ marginBottom: '1.25rem' }} 
+              value={inventorySearch}
+              onChange={e => setInventorySearch(e.target.value)}
+            />
+
+            {/* Low stock alerts */}
+            {inventory.some(item => item.quantity <= item.minThreshold) && (
+              <div className="badge badge-attention" style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', marginBottom: '1.25rem', textTransform: 'none', display: 'flex', flexDirection: 'column', gap: '0.15rem', textAlign: 'left' }}>
+                <strong style={{ fontSize: '0.8rem' }}>⚠️ Low Stock Alert:</strong>
+                {inventory.filter(item => item.quantity <= item.minThreshold).map((item, idx) => (
+                  <span key={idx} style={{ fontSize: '0.72rem', opacity: 0.9 }}>
+                    • {item.name} is at {item.quantity} {item.unit} (Minimum: {item.minThreshold} {item.unit})
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {inventory.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>Your canteens inventory ledger is currently empty. Deliveries automatically populate here, or you can add items manually.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {inventory.filter(item => item.name.toLowerCase().includes(inventorySearch.toLowerCase())).map((item, idx) => {
+                  const isLow = item.quantity <= item.minThreshold;
+                  return (
+                    <div key={idx} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: isLow ? '1px solid var(--attention)' : '1px solid var(--border)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <strong style={{ fontSize: '1.05rem', color: isLow ? 'var(--attention)' : 'var(--text-primary)' }}>{item.name}</strong>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                            Threshold: {item.minThreshold} {item.unit}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: isLow ? 'var(--attention)' : 'var(--verified)' }}>
+                            {item.quantity} {item.unit}
+                          </div>
+                          {isLow && <span className="badge badge-attention" style={{ fontSize: '0.6rem', marginTop: '0.15rem' }}>Low Stock</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem' }} 
+                          onClick={() => handleOpenConsumeModal(item)}
+                          disabled={item.quantity <= 0}
+                        >
+                          🍽️ Log Consumed
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ flex: 1, padding: '0.35rem', fontSize: '0.75rem' }} 
+                          onClick={() => handleOpenAdjustModal(item)}
+                        >
+                          ⚙️ Adjust
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Request Modal */}
@@ -863,6 +1397,136 @@ export default function KitchenDashboard({ user }) {
         </div>
       )}
 
+      {/* Log Consumption Modal */}
+      {showConsumeModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Record Daily Meal Consumption</h2>
+              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem' }} onClick={() => setShowConsumeModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleConsumeSubmit}>
+              <div style={{ marginBottom: '1rem', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                Deducting stock for: <strong style={{ color: 'white' }}>{consumeItemName}</strong>
+              </div>
+              
+              {/* Presets */}
+              <label className="form-label" style={{ fontSize: '0.75rem' }}>Quick presets</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                {[5, 10, 25].map(preset => (
+                  <button 
+                    key={preset}
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', flex: 1 }}
+                    onClick={() => setConsumeQuantity(preset)}
+                  >
+                    {preset} units
+                  </button>
+                ))}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Quantity Consumed</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  min="0.1"
+                  className="form-control" 
+                  required 
+                  value={consumeQuantity} 
+                  onChange={e => setConsumeQuantity(e.target.value)} 
+                  placeholder="e.g. 15"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.75rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowConsumeModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={actionPending}>
+                  {actionPending ? 'Logging...' : 'Log Deduct'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Adjust Stock Modal */}
+      {showAdjustModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Manual Stock Adjustment</h2>
+              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem' }} onClick={() => setShowAdjustModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleAdjustSubmit}>
+              <div className="form-group">
+                <label className="form-label">Ingredient Name</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  required 
+                  value={adjustItemName} 
+                  onChange={e => setAdjustItemName(e.target.value)} 
+                  placeholder="e.g. Atta"
+                />
+              </div>
+
+              <div className="form-row" style={{ marginTop: '0.75rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Current Stock</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    min="0"
+                    className="form-control" 
+                    required 
+                    value={adjustStockQuantity} 
+                    onChange={e => setAdjustStockQuantity(e.target.value)} 
+                    placeholder="e.g. 50"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Unit</label>
+                  <select 
+                    className="form-control" 
+                    value={adjustUnit} 
+                    onChange={e => setAdjustUnit(e.target.value)}
+                    required
+                  >
+                    <option value="kg">kg</option>
+                    <option value="L">L</option>
+                    <option value="packets">packets</option>
+                    <option value="pieces">pieces</option>
+                    <option value="dozen">dozen</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label">Minimum Threshold Alert Level</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  className="form-control" 
+                  required 
+                  value={adjustMinThreshold} 
+                  onChange={e => setAdjustMinThreshold(e.target.value)} 
+                  placeholder="Alert when stock falls below this level"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.75rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAdjustModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={actionPending}>
+                  {actionPending ? 'Adjusting...' : 'Save Inventory Stock'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Floating Basket Button */}
       <button 
         className="floating-basket-btn" 
@@ -894,12 +1558,6 @@ export default function KitchenDashboard({ user }) {
             ) : (
               basket.map((item) => (
                 <div key={item.ingredientId} className={`basket-item-card ${item.error ? 'has-error' : ''}`}>
-                  <div 
-                    className="basket-item-thumbnail"
-                    style={{ background: getCategoryGradient(item.category) }}
-                  >
-                    {getCategoryEmoji(item.category)}
-                  </div>
                   <div className="basket-item-details">
                     <h3 className="basket-item-name">{item.name}</h3>
                     <div className="basket-item-meta">

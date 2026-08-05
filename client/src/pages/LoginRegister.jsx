@@ -17,6 +17,7 @@ export default function LoginRegister({ onLogin }) {
   const [role, setRole] = useState('donor');
   const [lat, setLat] = useState(11.5034);
   const [lng, setLng] = useState(77.2444);
+  const [storageCapabilities, setStorageCapabilities] = useState([]);
 
   // Common UI State
   const [error, setError] = useState('');
@@ -79,7 +80,8 @@ export default function LoginRegister({ onLogin }) {
           email,
           password,
           role,
-          location: { lat: parseFloat(lat), lng: parseFloat(lng) }
+          location: { lat: parseFloat(lat), lng: parseFloat(lng) },
+          storageCapabilities: role === 'soup_kitchen' ? storageCapabilities : []
         })
       });
       const data = await res.json();
@@ -247,6 +249,31 @@ export default function LoginRegister({ onLogin }) {
                   <option value="soup_kitchen">Soup Kitchen (Recipient)</option>
                 </select>
               </div>
+
+              {role === 'soup_kitchen' && (
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label className="form-label">Storage capabilities (select all that apply):</label>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                    {['ambient', 'chilled', 'frozen'].map(cap => (
+                      <label key={cap} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          value={cap}
+                          checked={storageCapabilities.includes(cap)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStorageCapabilities([...storageCapabilities, cap]);
+                            } else {
+                              setStorageCapabilities(storageCapabilities.filter(c => c !== cap));
+                            }
+                          }}
+                        />
+                        {cap.charAt(0).toUpperCase() + cap.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="form-group" style={{ marginTop: '1rem' }}>
                 <label className="form-label" style={{ marginBottom: '0.25rem' }}>Select Base Geolocation Coordinates</label>

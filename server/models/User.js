@@ -1,5 +1,28 @@
 const mongoose = require('mongoose');
 
+const inventoryItemSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  unit: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  minThreshold: {
+    type: Number,
+    required: true,
+    default: 5
+  }
+});
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -36,6 +59,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 100 // Used primarily for donors
   },
+  storageCapabilities: {
+    type: [String],
+    enum: ['ambient', 'chilled', 'frozen'],
+    default: []
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -46,6 +74,24 @@ const userSchema = new mongoose.Schema({
       enum: ['Point']
     },
     coordinates: [Number] // [longitude, latitude]
+  },
+  // Operational fields for Donors
+  typicalDonationSchedule: {
+    type: [String],
+    default: []
+  },
+  preferredPickupWindow: {
+    type: String,
+    default: ''
+  },
+  typicalIngredientCategories: {
+    type: [String],
+    default: []
+  },
+  // Inventory tracking for Kitchens
+  inventory: {
+    type: [inventoryItemSchema],
+    default: []
   }
 }, {
   timestamps: true

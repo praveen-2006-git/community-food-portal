@@ -49,10 +49,63 @@ router.get('/admin', authenticateJWT, authorizeRoles('admin'), async (req, res) 
     const uniqueDonors = await Ingredient.distinct('donorRef');
     const activeDonors = uniqueDonors.length;
 
+    // 4. Prevented waste tracker: sum of receivedQuantity/quantity on delivered reservations
+    const Reservation = require('../models/Reservation');
+    const deliveredReservations = await Reservation.find({ deliveryStatus: 'delivered' });
+    const preventedWasteKg = deliveredReservations.reduce((acc, r) => acc + (r.receivedQuantity || r.quantity || 0), 0);
+
+    // 5. Coverage gaps: kitchen weekly needs vs active approved listings
+    const WeeklyNeed = require('../models/WeeklyNeed');
+    const activeNeeds = await WeeklyNeed.find({});
+    const approvedListings = await Ingredient.find({ status: 'approved' });
+
+    const neededMap = {};
+    activeNeeds.forEach(need => {
+      const name = need.ingredientName.toLowerCase();
+      neededMap[name] = (neededMap[name] || 0) + need.quantity;
+    });
+
+    const listingMap = {};
+    approvedListings.forEach(ing => {
+      const name = ing.name.toLowerCase();
+      listingMap[name] = (listingMap[name] || 0) + ing.quantity;
+    });
+
+    const coverageGaps = [];
+    for (const name in neededMap) {
+      const needed = neededMap[name];
+      const supplied = listingMap[name] || 0;
+      if (supplied < needed) {
+        coverageGaps.push({
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          needed,
+          supplied,
+          gap: needed - supplied
+        });
+      }
+    }
+
+    // 6. Expiring items (expiry date in next 24 hours)
+    const now = new Date();
+    const next24 = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const expiringCount = await Ingredient.countDocuments({
+      status: 'approved',
+      expiryDate: { $gte: now, $lte: next24 }
+    });
+
+    // 7. Uncollected logs (reservations flagged as 'expired' or 'rejected')
+    const uncollectedCount = await Reservation.countDocuments({
+      deliveryStatus: { $in: ['expired', 'rejected'] }
+    });
+
     res.status(200).json({
       totalIngredients,
       totalFulfilled,
-      activeDonors
+      activeDonors,
+      preventedWasteKg,
+      coverageGaps,
+      expiringCount,
+      uncollectedCount
     });
   } catch (error) {
     console.error('Fetch admin stats error:', error);

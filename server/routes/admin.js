@@ -62,6 +62,10 @@ router.post('/ingredients/:id/approve', async (req, res) => {
     ingredient.status = 'approved';
     await ingredient.save();
 
+    // Notify nearby soup kitchens
+    const { notifyNearbyKitchens } = require('../utils/notifier');
+    await notifyNearbyKitchens(ingredient).catch(err => console.error('Notification error:', err));
+
     // Create AuditLog entry
     const auditLog = new AuditLog({
       adminRef: req.user.id,

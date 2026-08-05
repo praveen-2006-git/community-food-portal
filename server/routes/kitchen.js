@@ -43,24 +43,47 @@ router.get('/ingredients', async (req, res) => {
     const activeDonors = await User.find({ role: 'donor', isActive: { $ne: false } }).select('_id').lean();
     const activeDonorIds = activeDonors.map(d => d._id);
 
+    const storageCaps = (req.user.storageCapabilities && req.user.storageCapabilities.length > 0)
+      ? req.user.storageCapabilities
+      : ['ambient', 'chilled', 'frozen'];
+
+    const coords = (req.user.locationGeo && req.user.locationGeo.coordinates)
+      ? req.user.locationGeo.coordinates
+      : [kitchenLng || 0, kitchenLat || 0];
+
     const query = {
       status: 'approved',
       quantity: { $gt: 0 },
-      donorRef: { $in: activeDonorIds }
+      donorRef: { $in: activeDonorIds },
+      storageType: { $in: storageCaps },
+      locationGeo: {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [coords[0], coords[1]] },
+          $maxDistance: parseInt(process.env.MAX_RADIUS_METRES) || 15000
+        }
+      }
     };
 
-    // Separate geo query from counting query to prevent countDocuments aggregation restrictions on $near
-    const countQuery = { ...query };
-
-    if (kitchenLat !== undefined && kitchenLng !== undefined) {
-      query.locationGeo = {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [kitchenLng, kitchenLat]
-          }
+    const maxDistanceMetres = parseInt(process.env.MAX_RADIUS_METRES) || 15000;
+    const earthRadiusMetres = 6378100;
+    const countQuery = {
+      status: 'approved',
+      quantity: { $gt: 0 },
+      donorRef: { $in: activeDonorIds },
+      storageType: { $in: storageCaps },
+      locationGeo: {
+        $geoWithin: {
+          $centerSphere: [
+            [coords[0], coords[1]],
+            maxDistanceMetres / earthRadiusMetres
+          ]
         }
-      };
+      }
+    };
+
+    if (req.query.dietaryType && ['veg', 'non-veg', 'egg'].includes(req.query.dietaryType)) {
+      query.dietaryType = req.query.dietaryType;
+      countQuery.dietaryType = req.query.dietaryType;
     }
 
     const total = await Ingredient.countDocuments(countQuery);
@@ -135,6 +158,15 @@ router.post('/ingredients/:id/request', async (req, res) => {
     const donorUser = await User.findById(ingredientObj.donorRef);
     if (donorUser && donorUser.isActive === false) {
       return res.status(403).json({ message: 'Your request cannot be completed: the donor account is deactivated.' });
+    }
+
+    // Check storage compatibility guard
+    const caps = req.user.storageCapabilities || [];
+    if (caps.length > 0 && !caps.includes(ingredientObj.storageType)) {
+      return res.status(400).json({
+        error: 'Storage mismatch',
+        message: 'Your registered storage facilities cannot safely store this ingredient.'
+      });
     }
 
     // ATOMIC UPDATE to prevent race conditions
@@ -228,7 +260,7 @@ router.get('/reservations', async (req, res) => {
 // PUT /api/kitchen/reservations/:id/delivery-status - Update delivery status (pending -> picked_up -> delivered)
 router.put('/reservations/:id/delivery-status', async (req, res) => {
   try {
-    const { deliveryStatus } = req.body;
+    const { deliveryStatus, receivedQuantity, condition } = req.body;
 
     if (!deliveryStatus || !['picked_up', 'delivered'].includes(deliveryStatus)) {
       return res.status(400).json({ message: 'Invalid delivery status. Must be picked_up or delivered.' });
@@ -253,20 +285,51 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
     }
 
     reservation.deliveryStatus = deliveryStatus;
-    await reservation.save();
 
     if (deliveryStatus === 'delivered') {
       request.status = 'fulfilled';
       await request.save();
 
+      const actualQty = typeof receivedQuantity === 'number' ? receivedQuantity : reservation.reservedQuantity;
+      const cond = condition || 'good';
+
+      reservation.receivedQuantity = actualQty;
+      reservation.condition = cond;
+      reservation.discrepancyLogged = actualQty !== reservation.reservedQuantity;
+      await reservation.save();
+
+      // Automatically add/increment this item in the kitchen user's inventory
+      if (cond !== 'rejected') {
+        const kitchen = await User.findById(req.user.id);
+        if (kitchen) {
+          const ingName = request.ingredientRef?.name || 'Surplus Item';
+          const ingUnit = request.ingredientRef?.unit || 'units';
+
+          const existingItem = kitchen.inventory.find(item => item.name.toLowerCase() === ingName.toLowerCase());
+          if (existingItem) {
+            existingItem.quantity = parseFloat((existingItem.quantity + actualQty).toFixed(2));
+          } else {
+            kitchen.inventory.push({
+              name: ingName,
+              quantity: actualQty,
+              unit: ingUnit,
+              minThreshold: 5 // Default min threshold
+            });
+          }
+          await kitchen.save();
+        }
+      }
+
       // Automatically generate a Notification for the donor
       const Notification = require('../models/Notification');
       const donorNotification = new Notification({
         userRef: request.ingredientRef.donorRef,
-        message: `Your donation of ${request.ingredientRef.name} has been successfully delivered!`,
+        message: `Your donation of ${request.ingredientRef.name} has been successfully delivered! ${cond === 'rejected' ? 'However, the kitchen rejected the shipment.' : actualQty !== reservation.reservedQuantity ? `Received quantity: ${actualQty} ${request.ingredientRef.unit} (discrepancy logged).` : ''}`,
         isRead: false
       });
       await donorNotification.save();
+    } else {
+      await reservation.save();
     }
 
     res.status(200).json({
@@ -278,6 +341,186 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
   } catch (error) {
     console.error('Update reservation status error:', error);
     res.status(500).json({ message: 'Internal server error while updating delivery status.' });
+  }
+});
+
+// GET /api/kitchen/notifications
+router.get('/notifications', authorizeRoles('soup_kitchen'), async (req, res) => {
+  try {
+    const Notification = require('../models/Notification');
+    const notifications = await Notification.find({ userRef: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// PUT /api/kitchen/notifications/:id/read
+router.put('/notifications/:id/read', authorizeRoles('soup_kitchen'), async (req, res) => {
+  try {
+    const Notification = require('../models/Notification');
+    await Notification.findOneAndUpdate(
+      { _id: req.params.id, userRef: req.user.id },
+      { isRead: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+// Weekly Needs Declaration endpoints
+// GET /api/kitchen/needs
+router.get('/needs', async (req, res) => {
+  try {
+    const WeeklyNeed = require('../models/WeeklyNeed');
+    const needs = await WeeklyNeed.find({ soupKitchenRef: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json(needs);
+  } catch (error) {
+    console.error('Fetch weekly needs error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching needs.' });
+  }
+});
+
+// POST /api/kitchen/needs
+router.post('/needs', async (req, res) => {
+  try {
+    const WeeklyNeed = require('../models/WeeklyNeed');
+    const { ingredientName, quantity, unit, priority } = req.body;
+    if (!ingredientName || !quantity || !unit) {
+      return res.status(400).json({ message: 'Ingredient name, quantity, and unit are required.' });
+    }
+
+    // Check if a need with this ingredient name already exists for the kitchen
+    let need = await WeeklyNeed.findOne({
+      soupKitchenRef: req.user.id,
+      ingredientName: { $regex: new RegExp(`^${ingredientName.trim()}$`, 'i') }
+    });
+
+    if (need) {
+      need.quantity = parseFloat(quantity);
+      need.unit = unit.trim();
+      need.priority = priority || 'normal';
+      await need.save();
+      return res.status(200).json({ message: 'Weekly need updated successfully.', need });
+    }
+
+    need = new WeeklyNeed({
+      soupKitchenRef: req.user.id,
+      ingredientName: ingredientName.trim(),
+      quantity: parseFloat(quantity),
+      unit: unit.trim(),
+      priority: priority || 'normal'
+    });
+    await need.save();
+    res.status(201).json({ message: 'Weekly need declared successfully.', need });
+  } catch (error) {
+    console.error('Create/update weekly need error:', error);
+    res.status(500).json({ message: 'Internal server error while declaring need.' });
+  }
+});
+
+// DELETE /api/kitchen/needs/:id
+router.delete('/needs/:id', async (req, res) => {
+  try {
+    const WeeklyNeed = require('../models/WeeklyNeed');
+    const need = await WeeklyNeed.findOneAndDelete({ _id: req.params.id, soupKitchenRef: req.user.id });
+    if (!need) {
+      return res.status(404).json({ message: 'Weekly need declaration not found.' });
+    }
+    res.status(200).json({ message: 'Weekly need declaration deleted successfully.' });
+  } catch (error) {
+    console.error('Delete weekly need error:', error);
+    res.status(500).json({ message: 'Internal server error while deleting need.' });
+  }
+});
+
+// Kitchen Inventory endpoints
+// GET /api/kitchen/inventory
+router.get('/inventory', async (req, res) => {
+  try {
+    const kitchen = await User.findById(req.user.id).select('inventory');
+    if (!kitchen) {
+      return res.status(404).json({ message: 'Kitchen user not found.' });
+    }
+    res.status(200).json(kitchen.inventory || []);
+  } catch (error) {
+    console.error('Fetch kitchen inventory error:', error);
+    res.status(500).json({ message: 'Internal server error while fetching inventory.' });
+  }
+});
+
+// PUT /api/kitchen/inventory/consume - Log daily consumption
+router.put('/inventory/consume', async (req, res) => {
+  try {
+    const { name, quantity } = req.body;
+    if (!name || typeof quantity !== 'number' || quantity <= 0) {
+      return res.status(400).json({ message: 'Ingredient name and positive quantity to consume are required.' });
+    }
+
+    const kitchen = await User.findById(req.user.id);
+    if (!kitchen) {
+      return res.status(404).json({ message: 'Kitchen user not found.' });
+    }
+
+    const item = kitchen.inventory.find(i => i.name.toLowerCase() === name.toLowerCase().trim());
+    if (!item) {
+      return res.status(404).json({ message: 'Ingredient not found in your inventory.' });
+    }
+
+    if (item.quantity < quantity) {
+      return res.status(400).json({ message: `Insufficient stock. Current stock is ${item.quantity} ${item.unit}.` });
+    }
+
+    item.quantity = parseFloat((item.quantity - quantity).toFixed(2));
+    await kitchen.save();
+
+    res.status(200).json({ message: 'Consumption logged successfully.', inventory: kitchen.inventory });
+  } catch (error) {
+    console.error('Log consumption error:', error);
+    res.status(500).json({ message: 'Internal server error while logging consumption.' });
+  }
+});
+
+// PUT /api/kitchen/inventory/adjust - Manually adjust stock
+router.put('/inventory/adjust', async (req, res) => {
+  try {
+    const { name, quantity, unit, minThreshold } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Ingredient name is required.' });
+    }
+
+    const kitchen = await User.findById(req.user.id);
+    if (!kitchen) {
+      return res.status(404).json({ message: 'Kitchen user not found.' });
+    }
+
+    let item = kitchen.inventory.find(i => i.name.toLowerCase() === name.toLowerCase().trim());
+
+    if (item) {
+      if (typeof quantity === 'number') item.quantity = parseFloat(quantity.toFixed(2));
+      if (unit) item.unit = unit.trim();
+      if (typeof minThreshold === 'number') item.minThreshold = minThreshold;
+    } else {
+      if (typeof quantity !== 'number' || !unit) {
+        return res.status(400).json({ message: 'Quantity and unit are required for new inventory items.' });
+      }
+      item = {
+        name: name.trim(),
+        quantity: parseFloat(quantity.toFixed(2)),
+        unit: unit.trim(),
+        minThreshold: typeof minThreshold === 'number' ? minThreshold : 5
+      };
+      kitchen.inventory.push(item);
+    }
+
+    await kitchen.save();
+    res.status(200).json({ message: 'Inventory adjusted successfully.', inventory: kitchen.inventory });
+  } catch (error) {
+    console.error('Adjust inventory error:', error);
+    res.status(500).json({ message: 'Internal server error while adjusting inventory.' });
   }
 });
 

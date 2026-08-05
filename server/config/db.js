@@ -3,11 +3,11 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/community_food_portal';
+    const connStr = process.env.MONGODB_URI;
     await mongoose.connect(connStr);
     console.log(`MongoDB Connected successfully!`);
   } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
+    console.error(`MongoDB Connection Error: ${error}`);
     process.exit(1);
   }
 };
