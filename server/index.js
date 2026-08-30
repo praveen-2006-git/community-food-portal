@@ -126,14 +126,14 @@ app.use(customMongoSanitize);
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 50,
   skip: (req) => process.env.NODE_ENV === 'test',
   message: { message: 'Too many login attempts from this IP, please try again after 15 minutes.' }
 });
 
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 3,
+  max: 25,
   skip: (req) => process.env.NODE_ENV === 'test',
   message: { message: 'Too many accounts created from this IP, please try again after 15 minutes.' }
 });
