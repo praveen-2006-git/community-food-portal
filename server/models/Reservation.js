@@ -22,13 +22,24 @@ const reservationSchema = new mongoose.Schema({
   },
   deliveryStatus: {
     type: String,
-    enum: ['pending', 'picked_up', 'delivered', 'expired'],
-    default: 'pending',
+    enum: ['pending', 'claimed', 'pickup_scheduled', 'handed_over', 'completed', 'expired', 'cancelled'],
+    default: 'claimed',
     required: true
   },
   pickupCode: {
     type: String,
     required: true
+  },
+  failedAttempts: {
+    type: Number,
+    default: 0
+  },
+  codeExpiresAt: {
+    type: Date
+  },
+  delayWarningSent: {
+    type: Boolean,
+    default: false
   },
   pickupConfirmedByDonor: {
     type: Boolean,
@@ -49,6 +60,19 @@ const reservationSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+reservationSchema.pre('save', function () {
+  const { hashPickupCode } = require('../utils/security');
+  if (this.isModified('pickupCode') && this.pickupCode && this.pickupCode !== 'used') {
+    const isHex64Regex = /^[0-9a-fA-F]{64}$/;
+    if (!isHex64Regex.test(this.pickupCode)) {
+      this.pickupCode = hashPickupCode(this.pickupCode);
+    }
+  }
+  if (!this.codeExpiresAt) {
+    this.codeExpiresAt = this.expiresAt || new Date(Date.now() + 15 * 60 * 1000);
+  }
 });
 
 module.exports = mongoose.model('Reservation', reservationSchema);

@@ -219,16 +219,16 @@ async function runTests() {
     });
     await expiredPendingIng.save({ validateBeforeSave: false });
 
-    // 2. Expired approved ingredient with a 'reserved' request & 'pending' reservation
+    // 2. Expired available ingredient with a 'claimed' request & 'claimed' reservation
     const expiredIngWithReserved = new Ingredient({
-      name: 'Expired Approved Reserved Apples',
+      name: 'Expired Available Claimed Apples',
       category: 'Fruits',
       quantity: 10,
       unit: 'kg',
       expiryDate: new Date(Date.now() - 24*60*60*1000),
       pickupDeadline: new Date(Date.now() - 24*60*60*1000),
       storageType: 'Ambient',
-      status: 'approved',
+      status: 'available',
       donorRef: donorId,
       location: { lat: 11.5, lng: 77.2 },
       donorDeclaration: true
@@ -239,7 +239,7 @@ async function runTests() {
       soupKitchenRef: k1Data.user.id,
       ingredientRef: expiredIngWithReserved._id,
       requestedQuantity: 5,
-      status: 'reserved',
+      status: 'claimed',
       pickupMode: 'self'
     });
     await reqReserved.save();
@@ -248,21 +248,21 @@ async function runTests() {
       requestRef: reqReserved._id,
       reservedQuantity: 5,
       expiresAt: expiredIngWithReserved.pickupDeadline,
-      deliveryStatus: 'pending',
+      deliveryStatus: 'claimed',
       pickupCode: '999999'
     });
     await resPending.save();
 
-    // 3. Expired approved ingredient with a 'fulfilled' request & 'delivered' reservation
+    // 3. Expired completed ingredient with a 'completed' request & 'completed' reservation
     const expiredIngWithFulfilled = new Ingredient({
-      name: 'Expired Approved Fulfilled Apples',
+      name: 'Expired Completed Completed Apples',
       category: 'Fruits',
       quantity: 10,
       unit: 'kg',
       expiryDate: new Date(Date.now() - 24*60*60*1000),
       pickupDeadline: new Date(Date.now() - 24*60*60*1000),
       storageType: 'Ambient',
-      status: 'approved',
+      status: 'completed',
       donorRef: donorId,
       location: { lat: 11.5, lng: 77.2 },
       donorDeclaration: true
@@ -273,7 +273,7 @@ async function runTests() {
       soupKitchenRef: k1Data.user.id,
       ingredientRef: expiredIngWithFulfilled._id,
       requestedQuantity: 5,
-      status: 'fulfilled',
+      status: 'completed',
       pickupMode: 'self'
     });
     await reqFulfilled.save();
@@ -282,7 +282,7 @@ async function runTests() {
       requestRef: reqFulfilled._id,
       reservedQuantity: 5,
       expiresAt: expiredIngWithFulfilled.pickupDeadline,
-      deliveryStatus: 'delivered',
+      deliveryStatus: 'completed',
       pickupCode: '888888'
     });
     await resDelivered.save();
@@ -306,9 +306,9 @@ async function runTests() {
     const checkedFulfilledIng = await Ingredient.findById(expiredIngWithFulfilled._id);
     const checkedReqFulfilled = await Request.findById(reqFulfilled._id);
     const checkedResDelivered = await Reservation.findById(resDelivered._id);
-    console.log('Fulfilled ingredient status (expected expired):', checkedFulfilledIng.status);
-    console.log('Associated Fulfilled Request status (expected fulfilled):', checkedReqFulfilled.status);
-    console.log('Associated Delivered Reservation deliveryStatus (expected delivered):', checkedResDelivered.deliveryStatus);
+    console.log('Completed ingredient status (expected completed):', checkedFulfilledIng.status);
+    console.log('Associated Completed Request status (expected completed):', checkedReqFulfilled.status);
+    console.log('Associated Completed Reservation deliveryStatus (expected completed):', checkedResDelivered.deliveryStatus);
 
 
     // --- TEST 7: Admin cannot approve expired ingredient ---

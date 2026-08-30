@@ -18,7 +18,7 @@ const requestSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'reserved', 'expired', 'fulfilled'],
+    enum: ['pending', 'claimed', 'pickup_scheduled', 'handed_over', 'completed', 'expired', 'cancelled'],
     default: 'pending',
     required: true
   },

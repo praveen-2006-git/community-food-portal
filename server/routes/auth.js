@@ -4,20 +4,45 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_12345';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be configured in environment variables.');
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, location, storageCapabilities } = req.body;
+    const { name, email, password, role, location, storageCapabilities, contactPerson, authorityToDonate } = req.body;
 
     // Validate request body
     if (!name || !email || !password || !role || !location) {
       return res.status(400).json({ message: 'All fields (name, email, password, role, location) are required.' });
     }
 
-    if (!['donor', 'soup_kitchen', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Must be donor, soup_kitchen, or admin.' });
+    if (role === 'admin') {
+      return res.status(400).json({ message: 'Administrative accounts cannot be registered publicly.' });
+    }
+
+    if (!['donor', 'soup_kitchen'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be donor or soup_kitchen.' });
+    }
+
+    if (role === 'donor') {
+      if (!contactPerson || typeof contactPerson !== 'string' || contactPerson.trim() === '') {
+        return res.status(400).json({ message: 'Contact person is required for donors.' });
+      }
+      if (authorityToDonate !== true) {
+        return res.status(400).json({ message: 'Authority to donate confirmation is required for donors.' });
+      }
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+
+    const blockedPasswords = ['password', 'password123', 'qwerty123', '12345678'];
+    if (blockedPasswords.includes(password.toLowerCase())) {
+      return res.status(400).json({ message: 'Password is too common/weak.' });
     }
 
     if (typeof location.lat !== 'number' || typeof location.lng !== 'number') {
@@ -40,6 +65,8 @@ router.post('/register', async (req, res) => {
       passwordHash,
       role,
       location,
+      contactPerson: role === 'donor' ? contactPerson : undefined,
+      authorityToDonate: role === 'donor' ? authorityToDonate : undefined,
       reputationScore: role === 'donor' ? 100 : undefined,
       storageCapabilities: role === 'soup_kitchen' ? (storageCapabilities || []) : undefined
     });
@@ -70,7 +97,9 @@ router.post('/register', async (req, res) => {
         location: newUser.location,
         reputationScore: newUser.reputationScore,
         isActive: newUser.isActive,
-        storageCapabilities: newUser.storageCapabilities
+        storageCapabilities: newUser.storageCapabilities,
+        contactPerson: newUser.contactPerson,
+        authorityToDonate: newUser.authorityToDonate
       }
     });
 
@@ -125,7 +154,9 @@ router.post('/login', async (req, res) => {
         location: user.location,
         reputationScore: user.reputationScore,
         isActive: user.isActive,
-        storageCapabilities: user.storageCapabilities || []
+        storageCapabilities: user.storageCapabilities || [],
+        contactPerson: user.contactPerson,
+        authorityToDonate: user.authorityToDonate
       }
     });
 
@@ -165,7 +196,9 @@ router.put('/profile', authenticateJWT, async (req, res) => {
         storageCapabilities: user.storageCapabilities || [],
         typicalDonationSchedule: user.typicalDonationSchedule || [],
         preferredPickupWindow: user.preferredPickupWindow || '',
-        typicalIngredientCategories: user.typicalIngredientCategories || []
+        typicalIngredientCategories: user.typicalIngredientCategories || [],
+        contactPerson: user.contactPerson,
+        authorityToDonate: user.authorityToDonate
       }
     });
   } catch (err) {

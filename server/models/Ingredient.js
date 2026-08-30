@@ -56,7 +56,7 @@ const ingredientSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'reserved', 'expired'],
+    enum: ['pending', 'available', 'rejected', 'completed', 'expired'],
     default: 'pending',
     required: true
   },

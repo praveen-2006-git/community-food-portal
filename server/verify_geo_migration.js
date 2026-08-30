@@ -1,3 +1,4 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/community_food_portal';
 
@@ -19,7 +20,9 @@ async function runTest() {
     email: 'testmig1@example.com',
     passwordHash: 'hash',
     role: 'donor',
-    location: { lat: 12.34, lng: 56.78 }
+    location: { lat: 12.34, lng: 56.78 },
+    contactPerson: 'Jane Mig',
+    authorityToDonate: true
   });
   await user1.save();
 
@@ -40,7 +43,7 @@ async function runTest() {
     expiryDate: new Date(),
     pickupDeadline: new Date(),
     storageType: 'Cold',
-    status: 'approved',
+    status: 'available',
     donorRef: user1._id,
     location: { lat: 45.67, lng: -89.12 },
     donorDeclaration: true

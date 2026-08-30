@@ -9,7 +9,7 @@ const auditLogSchema = new mongoose.Schema({
   action: {
     type: String,
     required: true,
-    enum: ['approve_ingredient', 'reject_ingredient', 'reactivate_donor', 'resolve_dispute']
+    enum: ['approve_ingredient', 'reject_ingredient', 'reactivate_donor', 'deactivate_donor', 'resolve_dispute']
   },
   targetId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -18,6 +18,18 @@ const auditLogSchema = new mongoose.Schema({
   details: {
     type: String,
     trim: true,
+    default: ''
+  },
+  actorIP: {
+    type: String,
+    default: ''
+  },
+  actorUserAgent: {
+    type: String,
+    default: ''
+  },
+  actorEmail: {
+    type: String,
     default: ''
   }
 }, {

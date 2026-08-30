@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LeafletMap from '../components/LeafletMap';
-import { useToast } from '../App';
+import { API_BASE_URL } from '../config/api';
 
 export default function LoginRegister({ onLogin }) {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
@@ -17,7 +17,8 @@ export default function LoginRegister({ onLogin }) {
   const [role, setRole] = useState('donor');
   const [lat, setLat] = useState(11.5034);
   const [lng, setLng] = useState(77.2444);
-  const [storageCapabilities, setStorageCapabilities] = useState([]);
+  const [contactPerson, setContactPerson] = useState('');
+  const [authorityToDonate, setAuthorityToDonate] = useState(false);
 
   // Common UI State
   const [error, setError] = useState('');
@@ -25,7 +26,6 @@ export default function LoginRegister({ onLogin }) {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { addToast } = useToast();
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +33,7 @@ export default function LoginRegister({ onLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -47,7 +47,6 @@ export default function LoginRegister({ onLogin }) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       onLogin(data.user);
-      addToast('Welcome back, ' + data.user.name + '!', 'success');
       
       // Redirect based on role
       if (data.user.role === 'donor') {
@@ -59,7 +58,6 @@ export default function LoginRegister({ onLogin }) {
       }
     } catch (err) {
       setError(err.message);
-      addToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -72,17 +70,23 @@ export default function LoginRegister({ onLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const payload = {
+        name,
+        email,
+        password,
+        role,
+        location: { lat: parseFloat(lat), lng: parseFloat(lng) }
+      };
+
+      if (role === 'donor') {
+        payload.contactPerson = contactPerson;
+        payload.authorityToDonate = authorityToDonate;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          role,
-          location: { lat: parseFloat(lat), lng: parseFloat(lng) },
-          storageCapabilities: role === 'soup_kitchen' ? storageCapabilities : []
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
@@ -91,13 +95,11 @@ export default function LoginRegister({ onLogin }) {
       }
 
       setSuccess('Registration successful! You can now log in.');
-      addToast('Registration successful! You can now sign in.', 'success');
       setActiveTab('login');
       // Autofill login email
       setLoginEmail(email);
     } catch (err) {
       setError(err.message);
-      addToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -105,224 +107,177 @@ export default function LoginRegister({ onLogin }) {
 
   return (
     <div className="auth-page">
-      {/* Left split screen column - branding & stats */}
-      <div className="auth-left">
-        <div className="auth-left-content">
-          <h1 className="auth-left-title">
-            Rescuing Food. <br />
-            Supporting <span>Communities</span>.
-          </h1>
-          <p className="auth-left-text">
-            Connecting local grocery stores, farms, and food donors with soup kitchens and shelters to reduce waste and eliminate local food insecurity.
-          </p>
-
-          <div className="auth-stats-grid">
-            <div className="auth-stat-card">
-              <span className="auth-stat-value">34k kg+</span>
-              <span className="auth-stat-label">Food Rescued</span>
-            </div>
-            <div className="auth-stat-card">
-              <span className="auth-stat-value">65k+</span>
-              <span className="auth-stat-label">Meals Provided</span>
-            </div>
-            <div className="auth-stat-card">
-              <span className="auth-stat-value">124</span>
-              <span className="auth-stat-label">Active Donors</span>
-            </div>
-            <div className="auth-stat-card">
-              <span className="auth-stat-value">45</span>
-              <span className="auth-stat-label">Soup Kitchens</span>
-            </div>
-          </div>
+      <div className="auth-card glass-panel">
+        <div className="auth-header">
+          <h2 className="auth-title">Community Food Portal</h2>
+          <p className="auth-subtitle">Connecting surplus food with soup kitchens</p>
         </div>
-      </div>
 
-      {/* Right split screen column - form widget */}
-      <div className="auth-right">
-        <div className="auth-card">
-          <div style={{ marginBottom: '1.75rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-              Welcome back
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.25rem' }}>
-              Please enter your details to sign in
-            </p>
-          </div>
+        <div className="tabs">
+          <button 
+            className={`tab ${activeTab === 'login' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('login'); setError(''); setSuccess(''); }}
+          >
+            Login
+          </button>
+          <button 
+            className={`tab ${activeTab === 'register' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('register'); setError(''); setSuccess(''); }}
+          >
+            Register
+          </button>
+        </div>
 
-          <div className="tabs">
-            <button 
-              className={`tab ${activeTab === 'login' ? 'active' : ''}`}
-              onClick={() => { setActiveTab('login'); setError(''); setSuccess(''); }}
-            >
-              Sign In
-            </button>
-            <button 
-              className={`tab ${activeTab === 'register' ? 'active' : ''}`}
-              onClick={() => { setActiveTab('register'); setError(''); setSuccess(''); }}
-            >
-              Register
-            </button>
-          </div>
+        {error && <div className="alert alert-danger">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
 
-          {error && (
-            <div className="badge badge-rejected" style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem', display: 'block', textAlign: 'center', textTransform: 'none' }}>
-              {error}
+        {activeTab === 'login' ? (
+          <form onSubmit={handleLoginSubmit}>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input 
+                type="email" 
+                className="form-control" 
+                required 
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
             </div>
-          )}
-          {success && (
-            <div className="badge badge-approved" style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem', display: 'block', textAlign: 'center', textTransform: 'none' }}>
-              {success}
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                className="form-control" 
+                required 
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
-          )}
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+              {loading ? 'Logging in...' : 'Log In'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegisterSubmit}>
+            <div className="form-group">
+              <label className="form-label">Full Name / Organization</label>
+              <input 
+                type="text" 
+                className="form-control" 
+                required 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Local Supermarket"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input 
+                type="email" 
+                className="form-control" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                className="form-control" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select 
+                className="form-control" 
+                value={role} 
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="donor">Donor (Surplus Food Supplier)</option>
+                <option value="soup_kitchen">Soup Kitchen (Food Recipient)</option>
+              </select>
+            </div>
 
-          {activeTab === 'login' ? (
-            <form onSubmit={handleLoginSubmit}>
-              <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  required 
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  required 
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }} disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleRegisterSubmit}>
-              <div className="form-group">
-                <label className="form-label">Full Name / Organization</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  required 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Local Harvest Coop"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Account Role</label>
-                <select 
-                  className="form-control" 
-                  value={role} 
-                  onChange={(e) => setRole(e.target.value)}
-                >
-                  <option value="donor">Food Donor (Stores, Farms)</option>
-                  <option value="soup_kitchen">Soup Kitchen (Recipient)</option>
-                </select>
-              </div>
-
-              {role === 'soup_kitchen' && (
-                <div className="form-group" style={{ marginTop: '1rem' }}>
-                  <label className="form-label">Storage capabilities (select all that apply):</label>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                    {['ambient', 'chilled', 'frozen'].map(cap => (
-                      <label key={cap} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          value={cap}
-                          checked={storageCapabilities.includes(cap)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setStorageCapabilities([...storageCapabilities, cap]);
-                            } else {
-                              setStorageCapabilities(storageCapabilities.filter(c => c !== cap));
-                            }
-                          }}
-                        />
-                        {cap.charAt(0).toUpperCase() + cap.slice(1)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label" style={{ marginBottom: '0.25rem' }}>Select Base Geolocation Coordinates</label>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem', marginBottom: '0.5rem' }}>
-                  Click on the map to set your location pin
-                </p>
-                <div className="map-container">
-                  <LeafletMap 
-                    lat={lat} 
-                    lng={lng} 
-                    onChange={(newLat, newLng) => {
-                      setLat(newLat);
-                      setLng(newLng);
-                    }}
-                    markerLabel="Registration Location"
+            {role === 'donor' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Contact Person</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    required 
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder="e.g. John Doe"
                   />
                 </div>
-                <div className="form-row" style={{ marginTop: '0.75rem' }}>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.72rem' }}>Latitude</label>
-                    <input 
-                      type="number" 
-                      step="0.000001"
-                      className="form-control" 
-                      required 
-                      value={lat}
-                      onChange={(e) => setLat(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.72rem' }}>Longitude</label>
-                    <input 
-                      type="number" 
-                      step="0.000001"
-                      className="form-control" 
-                      required 
-                      value={lng}
-                      onChange={(e) => setLng(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>
+                  <input 
+                    type="checkbox" 
+                    id="auth-to-donate"
+                    required
+                    checked={authorityToDonate}
+                    onChange={(e) => setAuthorityToDonate(e.target.checked)}
+                  />
+                  <label htmlFor="auth-to-donate" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+                    I confirm that I have the authority to donate this food.
+                  </label>
+                </div>
+              </>
+            )}
+            
+            <div className="form-group">
+              <label className="form-label">Select Location (Click on map or type manually)</label>
+              <div className="map-container">
+                <LeafletMap 
+                  lat={lat} 
+                  lng={lng} 
+                  onChange={(newLat, newLng) => {
+                    setLat(newLat);
+                    setLng(newLng);
+                  }}
+                  markerLabel="Your Center Location"
+                />
+              </div>
+              <div className="form-row" style={{ marginTop: '0.5rem' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Latitude</label>
+                  <input 
+                    type="number" 
+                    step="0.000001"
+                    className="form-control" 
+                    required 
+                    value={lat}
+                    onChange={(e) => setLat(parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Longitude</label>
+                  <input 
+                    type="number" 
+                    step="0.000001"
+                    className="form-control" 
+                    required 
+                    value={lng}
+                    onChange={(e) => setLng(parseFloat(e.target.value) || 0)}
+                  />
                 </div>
               </div>
+            </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }} disabled={loading}>
-                {loading ? 'Creating Account...' : 'Register Account'}
-              </button>
-            </form>
-          )}
-        </div>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+              {loading ? 'Registering...' : 'Register'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

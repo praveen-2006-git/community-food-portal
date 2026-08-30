@@ -25,12 +25,41 @@ const seedData = async () => {
     await Notification.deleteMany({});
     console.log('All collections cleared successfully.');
 
-    // 3. Hash password
+    // 3. Hash passwords
     const passwordHash = await bcrypt.hash('password123', 10);
+    const adminHash = await bcrypt.hash('ChangeMe2026!', 10);
+    const donorHash = await bcrypt.hash('DonorDemo2026!', 10);
+    const kitchenHash = await bcrypt.hash('KitchenDemo2026!', 10);
 
-    // 4. Create Users (3 Donors, 3 Soup Kitchens, 1 Admin)
+    // 4. Create Users (3 Donors, 3 Soup Kitchens, 1 Admin, plus target verification accounts)
     console.log('Seeding users...');
     const users = await User.create([
+      // Verification Accounts
+      {
+        name: 'SurplusLink Donor',
+        email: 'donor@surpluslink.local',
+        passwordHash: donorHash,
+        role: 'donor',
+        location: { lat: 11.5050, lng: 77.2450 },
+        reputationScore: 100,
+        venueCategory: 'RESTAURANT',
+        contactPerson: 'SurplusLink Admin',
+        authorityToDonate: true
+      },
+      {
+        name: 'SurplusLink Kitchen',
+        email: 'kitchen@surpluslink.local',
+        passwordHash: kitchenHash,
+        role: 'soup_kitchen',
+        location: { lat: 11.4950, lng: 77.2650 }
+      },
+      {
+        name: 'SurplusLink Administrator',
+        email: 'admin@surpluslink.local',
+        passwordHash: adminHash,
+        role: 'admin',
+        location: { lat: 11.5034, lng: 77.2444 }
+      },
       // Donors
       {
         name: 'Local Supermarket',
@@ -38,7 +67,10 @@ const seedData = async () => {
         passwordHash,
         role: 'donor',
         location: { lat: 11.5050, lng: 77.2450 },
-        reputationScore: 85
+        reputationScore: 85,
+        venueCategory: 'SUPERMARKET',
+        contactPerson: 'Alice Donor',
+        authorityToDonate: true
       },
       {
         name: 'City Hotel',
@@ -46,7 +78,10 @@ const seedData = async () => {
         passwordHash,
         role: 'donor',
         location: { lat: 11.4850, lng: 77.2350 },
-        reputationScore: 90
+        reputationScore: 90,
+        venueCategory: 'HOTEL',
+        contactPerson: 'Bob Hotel',
+        authorityToDonate: true
       },
       {
         name: 'Campus Cafeteria',
@@ -54,7 +89,10 @@ const seedData = async () => {
         passwordHash,
         role: 'donor',
         location: { lat: 11.5250, lng: 77.2600 },
-        reputationScore: 95
+        reputationScore: 95,
+        venueCategory: 'BANQUET_HALL',
+        contactPerson: 'Charlie Cafeteria',
+        authorityToDonate: true
       },
       // Soup Kitchens
       {
@@ -135,7 +173,7 @@ const seedData = async () => {
         expiryDate: futureDate,
         pickupDeadline: futureDate,
         storageType: 'Ambient',
-        status: 'approved',
+        status: 'available',
         donorRef: donors[0]._id,
         location: donors[0].location,
         donorDeclaration: true
@@ -148,7 +186,7 @@ const seedData = async () => {
         expiryDate: futureDate,
         pickupDeadline: futureDate,
         storageType: 'Chilled',
-        status: 'approved',
+        status: 'available',
         donorRef: donors[1]._id,
         location: donors[1].location,
         donorDeclaration: true

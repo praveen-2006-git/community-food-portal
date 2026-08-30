@@ -58,8 +58,8 @@ router.post('/ingredients/:id/approve', async (req, res) => {
 
     await qualityReport.save();
 
-    // Set status to approved
-    ingredient.status = 'approved';
+    // Set status to available
+    ingredient.status = 'available';
     await ingredient.save();
 
     // Notify nearby soup kitchens
@@ -71,7 +71,10 @@ router.post('/ingredients/:id/approve', async (req, res) => {
       adminRef: req.user.id,
       action: 'approve_ingredient',
       targetId: ingredient._id,
-      details: `Approved ingredient: ${ingredient.name}`
+      details: `Approved ingredient: ${ingredient.name}`,
+      actorIP: req.ip || req.headers['x-forwarded-for'] || '',
+      actorUserAgent: req.headers['user-agent'] || '',
+      actorEmail: req.user.email || ''
     });
     await auditLog.save();
 
@@ -108,9 +111,6 @@ router.post('/ingredients/:id/reject', async (req, res) => {
     if (donor) {
       donor.reputationScore = Math.max(0, (donor.reputationScore || 0) - 5);
       newScore = donor.reputationScore;
-      if (newScore < 40) {
-        donor.isActive = false;
-      }
       await donor.save();
     }
 
@@ -119,7 +119,10 @@ router.post('/ingredients/:id/reject', async (req, res) => {
       adminRef: req.user.id,
       action: 'reject_ingredient',
       targetId: ingredient._id,
-      details: `Rejected ingredient: ${ingredient.name}. Deducted 5 reputation points.`
+      details: `Rejected ingredient: ${ingredient.name}. Deducted 5 reputation points.`,
+      actorIP: req.ip || req.headers['x-forwarded-for'] || '',
+      actorUserAgent: req.headers['user-agent'] || '',
+      actorEmail: req.user.email || ''
     });
     await auditLog.save();
 
@@ -148,6 +151,35 @@ router.get('/donors/deactivated', async (req, res) => {
   }
 });
 
+// PUT /api/admin/donors/:id/deactivate - Deactivate a donor manually
+router.put('/donors/:id/deactivate', async (req, res) => {
+  try {
+    const donor = await User.findById(req.params.id);
+    if (!donor) {
+      return res.status(404).json({ message: 'Donor not found.' });
+    }
+    donor.isActive = false;
+    await donor.save();
+
+    // Create AuditLog entry
+    const auditLog = new AuditLog({
+      adminRef: req.user.id,
+      action: 'deactivate_donor',
+      targetId: donor._id,
+      details: `Manually deactivated donor: ${donor.name}`,
+      actorIP: req.ip || req.headers['x-forwarded-for'] || '',
+      actorUserAgent: req.headers['user-agent'] || '',
+      actorEmail: req.user.email || ''
+    });
+    await auditLog.save();
+
+    res.status(200).json({ message: 'Donor deactivated successfully.', donor });
+  } catch (error) {
+    console.error('Deactivate donor error:', error);
+    res.status(500).json({ message: 'Internal server error while deactivating donor.' });
+  }
+});
+
 // PUT /api/admin/donors/:id/reactivate - Reactivate a deactivated donor
 router.put('/donors/:id/reactivate', async (req, res) => {
   try {
@@ -164,7 +196,10 @@ router.put('/donors/:id/reactivate', async (req, res) => {
       adminRef: req.user.id,
       action: 'reactivate_donor',
       targetId: donor._id,
-      details: `Reactivated donor: ${donor.name}. Reset reputation score to 60.`
+      details: `Reactivated donor: ${donor.name}. Reset reputation score to 60.`,
+      actorIP: req.ip || req.headers['x-forwarded-for'] || '',
+      actorUserAgent: req.headers['user-agent'] || '',
+      actorEmail: req.user.email || ''
     });
     await auditLog.save();
 

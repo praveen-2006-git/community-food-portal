@@ -18,7 +18,7 @@ async function runTests() {
     console.log('\n--- STARTING DEACTIVATION & REACTIVATION TESTS ---');
 
     const email = 'testdeact@portal.com';
-    const password = 'password123';
+    const password = 'StrongPassword123!';
 
     // Cleanup any existing test user
     await User.deleteOne({ email });
@@ -33,7 +33,9 @@ async function runTests() {
         email,
         password,
         role: 'donor',
-        location: { lat: 11.5, lng: 77.2 }
+        location: { lat: 11.5, lng: 77.2 },
+        contactPerson: 'Jane Doe',
+        authorityToDonate: true
       })
     });
     const registerData = await registerRes.json();
@@ -111,7 +113,7 @@ async function runTests() {
       })
     });
     const ing2 = await createRes2.json();
-    await Ingredient.findByIdAndUpdate(ing2._id, { status: 'approved' });
+    await Ingredient.findByIdAndUpdate(ing2._id, { status: 'available' });
 
     console.log('Soup Kitchen requesting ing2...');
     const reqRes = await fetch(`${BASE_URL}/api/kitchen/ingredients/${ing2._id}/request`, {
@@ -123,16 +125,18 @@ async function runTests() {
     const resId = reqData.reservation?._id;
     const pickupCode = reqData.reservation?.pickupCode;
 
-    // Verify & pickup
+    // Transition to pickup_scheduled
+    await fetch(`${BASE_URL}/api/reservations/${resId}/delivery-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
+      body: JSON.stringify({ deliveryStatus: 'pickup_scheduled' })
+    });
+
+    // Verify & pickup (automatically transitions to handed_over)
     await fetch(`${BASE_URL}/api/reservations/${resId}/verify-pickup`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
       body: JSON.stringify({ enteredCode: pickupCode })
-    });
-    await fetch(`${BASE_URL}/api/reservations/${resId}/delivery-status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
-      body: JSON.stringify({ deliveryStatus: 'picked_up' })
     });
 
     console.log('Submitting issue report as Soup Kitchen...');
@@ -177,11 +181,23 @@ async function runTests() {
       });
     }
 
-    const deactUser = await User.findById(donorId);
+    let deactUser = await User.findById(donorId);
     console.log('Reputation score after deactivation loop (expected 15):', deactUser.reputationScore);
-    console.log('Donor isActive status (expected false):', deactUser.isActive);
+    console.log('Donor isActive status before manual action (expected true):', deactUser.isActive);
     if (deactUser.reputationScore !== 15) throw new Error(`Reputation score expected 15, got ${deactUser.reputationScore}`);
-    if (deactUser.isActive !== false) throw new Error(`Donor isActive expected false, got ${deactUser.isActive}`);
+    if (deactUser.isActive !== true) throw new Error(`Donor isActive expected true (no auto-deactivation), got ${deactUser.isActive}`);
+
+    // Trigger manual deactivation by Admin
+    console.log('Triggering manual deactivation by Admin...');
+    const manualDeactRes = await fetch(`${BASE_URL}/api/admin/donors/${donorId}/deactivate`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    console.log('Manual deactivation response status:', manualDeactRes.status);
+    
+    deactUser = await User.findById(donorId);
+    console.log('Donor isActive status after manual action (expected false):', deactUser.isActive);
+    if (deactUser.isActive !== false) throw new Error(`Donor isActive expected false after manual deactivation, got ${deactUser.isActive}`);
 
     // 5. Test 4: Block deactivated donor from listing ingredient (should fail with 403)
     console.log('\nTesting listing creation while deactivated...');

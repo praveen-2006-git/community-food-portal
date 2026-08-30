@@ -17,7 +17,7 @@ router.get('/donor', authenticateJWT, authorizeRoles('donor'), async (req, res) 
     
     const totalFulfilled = await Request.countDocuments({
       ingredientRef: { $in: myIngredientIds },
-      status: 'fulfilled'
+      status: 'completed'
     });
 
     // 3. Fetch donor's own reputation score
@@ -43,21 +43,37 @@ router.get('/admin', authenticateJWT, authorizeRoles('admin'), async (req, res) 
     const totalIngredients = await Ingredient.countDocuments();
 
     // 2. Total requests fulfilled globally
-    const totalFulfilled = await Request.countDocuments({ status: 'fulfilled' });
+    const totalFulfilled = await Request.countDocuments({ status: 'completed' });
 
     // 3. Unique donors who have listed at least one ingredient
     const uniqueDonors = await Ingredient.distinct('donorRef');
     const activeDonors = uniqueDonors.length;
 
-    // 4. Prevented waste tracker: sum of receivedQuantity/quantity on delivered reservations
+    // 4. Prevented waste tracker: aggregate receivedQuantity or reservedQuantity on delivered reservations
     const Reservation = require('../models/Reservation');
-    const deliveredReservations = await Reservation.find({ deliveryStatus: 'delivered' });
-    const preventedWasteKg = deliveredReservations.reduce((acc, r) => acc + (r.receivedQuantity || r.quantity || 0), 0);
+    const result = await Reservation.aggregate([
+      { $match: { deliveryStatus: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: {
+              $cond: {
+                if: { $eq: [{ $type: "$receivedQuantity" }, "number"] },
+                then: "$receivedQuantity",
+                else: "$reservedQuantity"
+              }
+            }
+          }
+        }
+      }
+    ]);
+    const preventedWasteKg = result.length > 0 ? result[0].total : 0;
 
     // 5. Coverage gaps: kitchen weekly needs vs active approved listings
     const WeeklyNeed = require('../models/WeeklyNeed');
     const activeNeeds = await WeeklyNeed.find({});
-    const approvedListings = await Ingredient.find({ status: 'approved' });
+    const approvedListings = await Ingredient.find({ status: 'available' });
 
     const neededMap = {};
     activeNeeds.forEach(need => {
@@ -89,7 +105,7 @@ router.get('/admin', authenticateJWT, authorizeRoles('admin'), async (req, res) 
     const now = new Date();
     const next24 = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const expiringCount = await Ingredient.countDocuments({
-      status: 'approved',
+      status: 'available',
       expiryDate: { $gte: now, $lte: next24 }
     });
 

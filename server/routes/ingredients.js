@@ -72,7 +72,7 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
       expiryDate,
       pickupDeadline,
       storageType,
-      status: isBypass ? 'approved' : 'pending',
+      status: isBypass ? 'available' : 'pending',
       donorRef: req.user.id,
       location,
       donorDeclaration,
@@ -84,7 +84,7 @@ router.post('/', authorizeRoles('donor'), async (req, res) => {
     const savedIngredient = await newIngredient.save();
 
     // Change 5B: Notify nearby soup kitchens if approved via trust bypass
-    if (savedIngredient.status === 'approved') {
+    if (savedIngredient.status === 'available') {
       const { notifyNearbyKitchens } = require('../utils/notifier');
       await notifyNearbyKitchens(savedIngredient).catch(err => console.error('Bypass notification error:', err));
     }
@@ -198,7 +198,7 @@ router.put('/:id', async (req, res) => {
       }
     }
     if (status) {
-      if (['pending', 'approved', 'rejected', 'reserved', 'expired'].includes(status)) {
+      if (['pending', 'available', 'rejected', 'completed', 'expired'].includes(status)) {
         ingredient.status = status;
       } else {
         return res.status(400).json({ message: 'Invalid status.' });

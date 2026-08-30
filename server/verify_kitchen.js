@@ -71,7 +71,7 @@ async function runTests() {
     });
     const ing1 = await ing1Res.json();
     // Approve it directly in DB for testing
-    await Ingredient.findByIdAndUpdate(ing1._id, { status: 'approved' });
+    await Ingredient.findByIdAndUpdate(ing1._id, { status: 'available' });
 
     // Ingredient 2: near Shelter Food Bank (11.5100, 77.2300)
     const ing2Res = await fetch(`${BASE_URL}/api/ingredients`, {
@@ -91,7 +91,7 @@ async function runTests() {
     });
     const ing2 = await ing2Res.json();
     // Approve it directly in DB for testing
-    await Ingredient.findByIdAndUpdate(ing2._id, { status: 'approved' });
+    await Ingredient.findByIdAndUpdate(ing2._id, { status: 'available' });
 
     console.log('Test ingredients created and approved.');
 
@@ -165,7 +165,7 @@ async function runTests() {
       expiryDate: new Date(),
       pickupDeadline: pastDeadline,
       storageType: 'Chilled',
-      status: 'approved',
+      status: 'available',
       donorRef: donorData.user.id,
       location: { lat: 11.5034, lng: 77.2444 },
       donorDeclaration: true

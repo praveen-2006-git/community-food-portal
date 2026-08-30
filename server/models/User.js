@@ -20,6 +20,9 @@ const inventoryItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 5
+  },
+  expiryDate: {
+    type: Date
   }
 });
 
@@ -76,6 +79,39 @@ const userSchema = new mongoose.Schema({
     coordinates: [Number] // [longitude, latitude]
   },
   // Operational fields for Donors
+  contactPerson: {
+    type: String,
+    required: function() { return this.role === 'donor'; }
+  },
+  authorityToDonate: {
+    type: Boolean,
+    required: function() { return this.role === 'donor'; },
+    validate: {
+      validator: function(v) {
+        if (this.role === 'donor') return v === true;
+        return true;
+      },
+      message: 'Donors must confirm authority to donate.'
+    }
+  },
+  venueCategory: {
+    type: String,
+    enum: [
+      'HOTEL',
+      'MANDAPAM',
+      'MARRIAGE_HALL',
+      'CONVENTION_CENTRE',
+      'COMMUNITY_HALL',
+      'RELIGIOUS_HALL',
+      'CATERER',
+      'RESTAURANT',
+      'BANQUET_HALL',
+      'FOOD_SUPPLIER',
+      'SUPERMARKET',
+      'OTHER'
+    ],
+    default: 'OTHER'
+  },
   typicalDonationSchedule: {
     type: [String],
     default: []

@@ -14,6 +14,11 @@ async function runTests() {
   let testKitchen, testDonor, testIngredient, testReservation, testNeed;
 
   try {
+    // Wait for Mongo connection
+    while (mongoose.connection.readyState !== 1) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+
     // 1. Setup clean state
     await User.deleteMany({ email: /needs/ });
     await WeeklyNeed.deleteMany({});
@@ -27,7 +32,9 @@ async function runTests() {
       passwordHash,
       role: 'donor',
       location: { lat: 11.5, lng: 77.2 },
-      locationGeo: { type: 'Point', coordinates: [77.2, 11.5] }
+      locationGeo: { type: 'Point', coordinates: [77.2, 11.5] },
+      contactPerson: 'John Needs',
+      authorityToDonate: true
     });
 
     testKitchen = await User.create({
@@ -99,7 +106,7 @@ async function runTests() {
       expiryDate: new Date(Date.now() + 86400000),
       pickupDeadline: new Date(Date.now() + 86400000),
       donorRef: testDonor._id,
-      status: 'approved',
+      status: 'available',
       location: { lat: 11.5, lng: 77.2 },
       locationGeo: { type: 'Point', coordinates: [77.2, 11.5] },
       donorDeclaration: true
@@ -110,7 +117,7 @@ async function runTests() {
       soupKitchenRef: testKitchen._id,
       ingredientRef: testIngredient._id,
       requestedQuantity: 20,
-      status: 'reserved',
+      status: 'claimed',
       pickupMode: 'self'
     });
 
@@ -119,10 +126,25 @@ async function runTests() {
       requestRef: mockRequest._id,
       reservedQuantity: 20,
       expiresAt: new Date(Date.now() + 86400000),
-      deliveryStatus: 'pending',
+      deliveryStatus: 'claimed',
       pickupCode: '123456'
     });
 
+    // Step A: Schedule pickup
+    await fetch(`http://localhost:5000/api/kitchen/reservations/${testReservation._id}/delivery-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ deliveryStatus: 'pickup_scheduled' })
+    });
+
+    // Step B: Verify pickup code (transitions to handed_over)
+    await fetch(`http://localhost:5000/api/reservations/${testReservation._id}/verify-pickup`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
+      body: JSON.stringify({ enteredCode: '123456' })
+    });
+
+    // Step C: Complete delivery
     const deliveryRes = await fetch(`http://localhost:5000/api/kitchen/reservations/${testReservation._id}/delivery-status`, {
       method: 'PUT',
       headers: {
@@ -130,7 +152,7 @@ async function runTests() {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        deliveryStatus: 'delivered',
+        deliveryStatus: 'completed',
         receivedQuantity: 18,
         condition: 'partial'
       })

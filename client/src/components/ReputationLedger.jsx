@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearch } from '../App';
+import { API_BASE_URL } from '../config/api';
 
 export default function ReputationLedger() {
   const { searchQuery } = useSearch();
@@ -16,7 +17,7 @@ export default function ReputationLedger() {
       setError('');
       const token = localStorage.getItem('token');
       try {
-        const res = await fetch(`http://localhost:5000/api/admin/network-ledger?page=${page}&limit=${limit}`, {
+        const res = await fetch(`${API_BASE_URL}/api/admin/network-ledger?page=${page}&limit=${limit}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -123,7 +124,7 @@ export default function ReputationLedger() {
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     {renderRankBadge(rank)}
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', fontWeight: 700, color: 'white', fontSize: '0.95rem' }}>
+                  <td style={{ padding: '1.25rem 1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                     {entry.name}
                   </td>
                   <td style={{ padding: '1.25rem 1.5rem' }}>

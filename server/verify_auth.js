@@ -20,9 +20,11 @@ async function runTests() {
       body: JSON.stringify({
         name: 'Test Donor Shop',
         email: 'test_donor@portal.com',
-        password: 'password123',
+        password: 'StrongPassword123!',
         role: 'donor',
-        location: { lat: 11.5000, lng: 77.2400 }
+        location: { lat: 11.5000, lng: 77.2400 },
+        contactPerson: 'Jane Doe',
+        authorityToDonate: true
       })
     });
     const donorRegData = await registerDonorRes.json();
@@ -51,7 +53,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'test_donor@portal.com',
-        password: 'password123'
+        password: 'StrongPassword123!'
       })
     });
     const donorLoginData = await donorLoginRes.json();

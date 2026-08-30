@@ -12,7 +12,9 @@ async function runTests() {
     server = appServer;
 
     // Wait for Mongo connection
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    while (mongoose.connection.readyState !== 1) {
+      await new Promise(r => setTimeout(r, 100));
+    }
 
     const Ingredient = require('./models/Ingredient');
     const User = require('./models/User');
@@ -21,8 +23,10 @@ async function runTests() {
     const donor = await User.findOne({ email: 'donor1@portal.com' });
     if (!donor) throw new Error('Donor donor1@portal.com not found. Run seed.js first.');
 
-    // Ensure donor is active to pass query filters
+    // Ensure donor is active and has validation fields to pass schema check
     donor.isActive = true;
+    donor.contactPerson = 'Jane Seed';
+    donor.authorityToDonate = true;
     await donor.save();
 
     // Delete existing ingredients to start fresh
@@ -38,7 +42,7 @@ async function runTests() {
         expiryDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
         pickupDeadline: new Date(now.getTime() + 11 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
-        status: 'approved',
+        status: 'available',
         donorRef: donor._id,
         location: { lat: 11.5035, lng: 77.2445 },
         donorDeclaration: true
@@ -51,7 +55,7 @@ async function runTests() {
         expiryDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
         pickupDeadline: new Date(now.getTime() + 13 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
-        status: 'approved',
+        status: 'available',
         donorRef: donor._id,
         location: { lat: 11.5135, lng: 77.2545 },
         donorDeclaration: true
@@ -64,7 +68,7 @@ async function runTests() {
         expiryDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
         pickupDeadline: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
-        status: 'approved',
+        status: 'available',
         donorRef: donor._id,
         location: { lat: 11.5235, lng: 77.2645 },
         donorDeclaration: true
@@ -77,7 +81,7 @@ async function runTests() {
         expiryDate: new Date(now.getTime() + 16 * 24 * 60 * 60 * 1000),
         pickupDeadline: new Date(now.getTime() + 17 * 24 * 60 * 60 * 1000),
         storageType: 'Ambient',
-        status: 'approved',
+        status: 'available',
         donorRef: donor._id,
         location: { lat: 11.5335, lng: 77.2745 },
         donorDeclaration: true

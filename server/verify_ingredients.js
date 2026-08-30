@@ -106,7 +106,7 @@ async function runTests() {
       soupKitchenRef: kitchen._id,
       ingredientRef: createdIngredient._id,
       requestedQuantity: 15,
-      status: 'reserved',
+      status: 'claimed',
       pickupMode: 'self'
     });
     await mockRequest.save();
@@ -116,7 +116,7 @@ async function runTests() {
       requestRef: mockRequest._id,
       reservedQuantity: 15,
       expiresAt: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000),
-      deliveryStatus: 'pending',
+      deliveryStatus: 'claimed',
       pickupCode: '123456'
     });
     await mockReservation.save();

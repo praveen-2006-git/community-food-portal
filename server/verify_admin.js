@@ -24,6 +24,7 @@ async function runTests() {
       body: JSON.stringify({ email: 'donor1@portal.com', password: 'password123' })
     });
     const donorData = await donorLoginRes.json();
+    console.log('Donor Login Status:', donorLoginRes.status, 'Response:', donorData);
     const donorToken = donorData.token;
     
     // Admin login
@@ -159,8 +160,8 @@ async function runTests() {
     
     // Check ingredient status from DB
     const approvedIng = await Ingredient.findById(testIng1._id);
-    console.log('Updated Status in DB (expected approved):', approvedIng.status);
-    if (approvedIng.status !== 'approved') throw new Error(`DB Status expected approved, got ${approvedIng.status}`);
+    console.log('Updated Status in DB (expected available):', approvedIng.status);
+    if (approvedIng.status !== 'available') throw new Error(`DB Status expected available, got ${approvedIng.status}`);
  
     // Verify Quality Report was created
     const qr = await QualityReport.findOne({ ingredientRef: testIng1._id });

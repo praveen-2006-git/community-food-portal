@@ -1,8 +1,8 @@
 import React from 'react';
 
 export default function CustodyRibbon({ status, deliveryStatus }) {
-  // Stages: Listed, Approved, Reserved, Picked Up, Verified
-  const stages = ['LISTED', 'APPROVED', 'RESERVED', 'PICKED UP', 'VERIFIED'];
+  // Stages: Listed, Available, Claimed, Pickup Scheduled, Handed Over, Completed
+  const stages = ['LISTED', 'AVAILABLE', 'CLAIMED', 'PICKUP SCHEDULED', 'HANDED OVER', 'COMPLETED'];
   
   // Resolve current active stage index and error index
   let activeIndex = 0;
@@ -13,31 +13,26 @@ export default function CustodyRibbon({ status, deliveryStatus }) {
   const currentStatus = deliveryStatus || status;
 
   if (currentStatus === 'pending') {
-    if (deliveryStatus) {
-      // Reservation is pending -> Reserved stage is active
-      activeIndex = 2;
-    } else {
-      // Ingredient is pending -> Listed stage is active
-      activeIndex = 0;
-    }
-  } else if (currentStatus === 'approved') {
+    activeIndex = 0;
+  } else if (currentStatus === 'available') {
     activeIndex = 1;
-  } else if (currentStatus === 'reserved') {
+  } else if (currentStatus === 'claimed') {
     activeIndex = 2;
-  } else if (currentStatus === 'picked_up') {
+  } else if (currentStatus === 'pickup_scheduled') {
     activeIndex = 3;
-  } else if (currentStatus === 'delivered' || currentStatus === 'fulfilled') {
+  } else if (currentStatus === 'handed_over') {
     activeIndex = 4;
+  } else if (currentStatus === 'completed') {
+    activeIndex = 5;
   } else if (currentStatus === 'rejected') {
     isDanger = true;
     dangerIndex = 0; // Failed at listed review
   } else if (currentStatus === 'expired') {
     isDanger = true;
-    if (deliveryStatus) {
-      dangerIndex = 3; // Failed to be picked up on time
-    } else {
-      dangerIndex = 1; // Expired before being reserved/approved
-    }
+    dangerIndex = deliveryStatus ? 4 : 1;
+  } else if (currentStatus === 'cancelled') {
+    isDanger = true;
+    dangerIndex = 2;
   }
 
   return (

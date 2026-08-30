@@ -97,7 +97,7 @@ async function runTests() {
     console.log('New ingredient ID:', ingDoc._id);
 
     // Approve the ingredient
-    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'approved' });
+    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'available' });
 
     // 4. Kitchen 1 requests the ingredient
     console.log('\nKitchen 1 requesting 10 units...');
@@ -128,20 +128,20 @@ async function runTests() {
     console.log('Report response status (expected 400):', pendingReportRes.status);
     console.log('Report response message:', pendingReportData.message);
 
-    // 6. Transition reservation to picked_up
-    // Step A: Donor verifies pickup code
+    // 6. Transition reservation to handed_over
+    // Step A: Transition to pickup_scheduled
+    await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
+      body: JSON.stringify({ deliveryStatus: 'pickup_scheduled' })
+    });
+    // Step B: Donor verifies pickup code (transitions to handed_over)
     await fetch(`${BASE_URL}/api/reservations/${reservationId}/verify-pickup`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
       body: JSON.stringify({ enteredCode: pickupCode })
     });
-    // Step B: Mark deliveryStatus as picked_up
-    await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'picked_up' })
-    });
-    console.log('Reservation transitioned to picked_up.');
+    console.log('Reservation transitioned to handed_over.');
 
     // 7. Test: Submit issue report on 'picked_up' reservation (should succeed)
     console.log('\nSubmitting valid issue report as kitchen...');

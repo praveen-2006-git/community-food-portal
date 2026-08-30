@@ -11,13 +11,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runTests() {
   try {
-    await delay(2000);
+    while (mongoose.connection.readyState !== 1) {
+      await new Promise(r => setTimeout(r, 100));
+    }
     console.log('\n--- STARTING AUDIT LOG & RATE LIMIT INTEGRATION TESTS ---');
 
     // Register a donor
     const donorEmail = 'audit_donor@portal.com';
     const adminEmail = 'admin@portal.com';
-    const password = 'password123';
+    const donorPassword = 'StrongPassword123!';
+    const adminPassword = 'password123';
 
     await User.deleteOne({ email: donorEmail });
     await AuditLog.deleteMany({});
@@ -29,9 +32,11 @@ async function runTests() {
       body: JSON.stringify({
         name: 'Audit Donor',
         email: donorEmail,
-        password,
+        password: donorPassword,
         role: 'donor',
-        location: { lat: 12.0, lng: 77.0 }
+        location: { lat: 12.0, lng: 77.0 },
+        contactPerson: 'Jane Doe',
+        authorityToDonate: true
       })
     });
     const donorData = await registerRes.json();
@@ -45,7 +50,7 @@ async function runTests() {
     const adminLoginRes = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: adminEmail, password })
+      body: JSON.stringify({ email: adminEmail, password: adminPassword })
     });
     const adminData = await adminLoginRes.json();
     const adminToken = adminData.token;

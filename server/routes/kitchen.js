@@ -5,6 +5,7 @@ const Ingredient = require('../models/Ingredient');
 const Request = require('../models/Request');
 const Reservation = require('../models/Reservation');
 const User = require('../models/User');
+const { hashPickupCode } = require('../utils/security');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
 
 // All routes require user to be authenticated and have the 'soup_kitchen' or 'admin' role
@@ -52,7 +53,7 @@ router.get('/ingredients', async (req, res) => {
       : [kitchenLng || 0, kitchenLat || 0];
 
     const query = {
-      status: 'approved',
+      status: 'available',
       quantity: { $gt: 0 },
       donorRef: { $in: activeDonorIds },
       storageType: { $in: storageCaps },
@@ -67,7 +68,7 @@ router.get('/ingredients', async (req, res) => {
     const maxDistanceMetres = parseInt(process.env.MAX_RADIUS_METRES) || 15000;
     const earthRadiusMetres = 6378100;
     const countQuery = {
-      status: 'approved',
+      status: 'available',
       quantity: { $gt: 0 },
       donorRef: { $in: activeDonorIds },
       storageType: { $in: storageCaps },
@@ -125,44 +126,55 @@ router.get('/ingredients', async (req, res) => {
 
 // POST /api/kitchen/ingredients/:id/request - Request specific quantity of an ingredient
 router.post('/ingredients/:id/request', async (req, res) => {
+  const session = await mongoose.startSession();
   try {
+    session.startTransaction();
+
     const { requestedQuantity, pickupMode, volunteerName } = req.body;
 
     if (requestedQuantity === undefined || !pickupMode) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Requested quantity and pickup mode are required.' });
     }
 
     if (requestedQuantity <= 0) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Requested quantity must be greater than zero.' });
     }
 
     if (!['self', 'volunteer'].includes(pickupMode)) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Pickup mode must be self or volunteer.' });
     }
 
     if (pickupMode === 'volunteer' && !volunteerName) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Volunteer name is required when pickup mode is volunteer.' });
     }
 
     const ingredientId = req.params.id;
 
     if (!mongoose.Types.ObjectId.isValid(ingredientId)) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Invalid ingredient ID format.' });
     }
 
-    const ingredientObj = await Ingredient.findById(ingredientId);
+    const ingredientObj = await Ingredient.findById(ingredientId).session(session);
     if (!ingredientObj) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Ingredient not found.' });
     }
 
-    const donorUser = await User.findById(ingredientObj.donorRef);
+    const donorUser = await User.findById(ingredientObj.donorRef).session(session);
     if (donorUser && donorUser.isActive === false) {
+      await session.abortTransaction();
       return res.status(403).json({ message: 'Your request cannot be completed: the donor account is deactivated.' });
     }
 
     // Check storage compatibility guard
     const caps = req.user.storageCapabilities || [];
     if (caps.length > 0 && !caps.includes(ingredientObj.storageType)) {
+      await session.abortTransaction();
       return res.status(400).json({
         error: 'Storage mismatch',
         message: 'Your registered storage facilities cannot safely store this ingredient.'
@@ -170,31 +182,26 @@ router.post('/ingredients/:id/request', async (req, res) => {
     }
 
     // ATOMIC UPDATE to prevent race conditions
-    // Atomically decrement quantity ONLY if current quantity is >= requestedQuantity and status is 'approved'
     const updatedIngredient = await Ingredient.findOneAndUpdate(
       {
         _id: ingredientId,
-        status: 'approved',
+        status: 'available',
         quantity: { $gte: requestedQuantity }
       },
       {
         $inc: { quantity: -requestedQuantity }
       },
       {
-        new: true // Return updated document
+        new: true,
+        session
       }
     );
 
     if (!updatedIngredient) {
+      await session.abortTransaction();
       return res.status(400).json({
-        message: 'Requested quantity is not available, or the ingredient is no longer active/approved.'
+        message: 'Requested quantity is not available, or the ingredient is no longer active/available.'
       });
-    }
-
-    // If quantity is now 0, flip status to 'reserved'
-    if (updatedIngredient.quantity === 0) {
-      updatedIngredient.status = 'reserved';
-      await updatedIngredient.save({ validateBeforeSave: false });
     }
 
     // Create Request
@@ -202,34 +209,49 @@ router.post('/ingredients/:id/request', async (req, res) => {
       soupKitchenRef: req.user.id,
       ingredientRef: ingredientId,
       requestedQuantity,
-      status: 'reserved', // Requested items start as reserved
+      status: 'claimed',
       pickupMode,
       volunteerName: pickupMode === 'volunteer' ? volunteerName : ''
     });
-    await request.save();
+    await request.save({ session });
 
     const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPickupCode = hashPickupCode(pickupCode);
+    const codeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins in future
+
     const reservation = new Reservation({
       requestRef: request._id,
       reservedQuantity: requestedQuantity,
       expiresAt: updatedIngredient.pickupDeadline,
-      deliveryStatus: 'pending',
-      pickupCode,
+      deliveryStatus: 'claimed',
+      pickupCode: hashedPickupCode,
+      failedAttempts: 0,
+      codeExpiresAt,
       pickupConfirmedByDonor: false
     });
-    await reservation.save();
+    await reservation.save({ session });
 
-    res.status(201).json({
+    await session.commitTransaction();
+
+    const responseReservation = reservation.toObject();
+    responseReservation.pickupCode = pickupCode; // Return plaintext code to caller for tests/display
+
+    return res.status(201).json({
       message: 'Request created and ingredient reserved successfully.',
       request,
-      reservation,
+      reservation: responseReservation,
       remainingQuantity: updatedIngredient.quantity,
       ingredientStatus: updatedIngredient.status
     });
 
   } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error('Request ingredient error:', error);
-    res.status(500).json({ message: 'Internal server error during request placement.' });
+    return res.status(500).json({ message: 'Internal server error during request placement.' });
+  } finally {
+    session.endSession();
   }
 });
 
@@ -262,8 +284,9 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
   try {
     const { deliveryStatus, receivedQuantity, condition } = req.body;
 
-    if (!deliveryStatus || !['picked_up', 'delivered'].includes(deliveryStatus)) {
-      return res.status(400).json({ message: 'Invalid delivery status. Must be picked_up or delivered.' });
+    const allowedStatuses = ['pickup_scheduled', 'completed', 'cancelled'];
+    if (!deliveryStatus || !allowedStatuses.includes(deliveryStatus)) {
+      return res.status(400).json({ message: 'Invalid delivery status. Must be pickup_scheduled, completed, or cancelled.' });
     }
 
     const reservation = await Reservation.findById(req.params.id);
@@ -280,15 +303,36 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
       return res.status(403).json({ message: 'Access denied. You do not own this reservation.' });
     }
 
-    if (deliveryStatus === 'picked_up' && !reservation.pickupConfirmedByDonor) {
-      return res.status(400).json({ message: 'Pickup code has not been verified by the donor. Status transition to picked_up is blocked.' });
+    // State Transition Guards
+    const current = reservation.deliveryStatus;
+    if (deliveryStatus === 'pickup_scheduled' && current !== 'claimed') {
+      return res.status(400).json({ message: 'Cannot transition to pickup_scheduled unless current status is claimed.' });
+    }
+
+    if (deliveryStatus === 'completed') {
+      if (current !== 'handed_over') {
+        return res.status(400).json({ message: 'Cannot transition to completed unless current status is handed_over.' });
+      }
+      if (!reservation.pickupConfirmedByDonor) {
+        return res.status(400).json({ message: 'Pickup code has not been verified by the donor. Status transition to completed is blocked.' });
+      }
+    }
+
+    if (deliveryStatus === 'cancelled' && !['claimed', 'pickup_scheduled'].includes(current)) {
+      return res.status(400).json({ message: 'Cannot cancel reservation after it has been handed over or completed.' });
     }
 
     reservation.deliveryStatus = deliveryStatus;
 
-    if (deliveryStatus === 'delivered') {
-      request.status = 'fulfilled';
+    if (deliveryStatus === 'completed') {
+      request.status = 'completed';
       await request.save();
+
+      // Set ingredient status to completed if fully claimed
+      if (request.ingredientRef) {
+        request.ingredientRef.status = 'completed';
+        await request.ingredientRef.save();
+      }
 
       const actualQty = typeof receivedQuantity === 'number' ? receivedQuantity : reservation.reservedQuantity;
       const cond = condition || 'good';
@@ -306,14 +350,21 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
           const ingUnit = request.ingredientRef?.unit || 'units';
 
           const existingItem = kitchen.inventory.find(item => item.name.toLowerCase() === ingName.toLowerCase());
+          const newExpiryDate = request.ingredientRef?.expiryDate;
           if (existingItem) {
             existingItem.quantity = parseFloat((existingItem.quantity + actualQty).toFixed(2));
+            if (newExpiryDate) {
+              if (!existingItem.expiryDate || new Date(newExpiryDate) < new Date(existingItem.expiryDate)) {
+                existingItem.expiryDate = newExpiryDate;
+              }
+            }
           } else {
             kitchen.inventory.push({
               name: ingName,
               quantity: actualQty,
               unit: ingUnit,
-              minThreshold: 5 // Default min threshold
+              minThreshold: 5,
+              expiryDate: newExpiryDate
             });
           }
           await kitchen.save();
@@ -329,6 +380,17 @@ router.put('/reservations/:id/delivery-status', async (req, res) => {
       });
       await donorNotification.save();
     } else {
+      if (deliveryStatus === 'cancelled') {
+        request.status = 'cancelled';
+        await request.save();
+        if (request.ingredientRef) {
+          request.ingredientRef.quantity += reservation.reservedQuantity;
+          if (request.ingredientRef.status === 'claimed') {
+            request.ingredientRef.status = 'available';
+          }
+          await request.ingredientRef.save();
+        }
+      }
       await reservation.save();
     }
 
@@ -487,7 +549,7 @@ router.put('/inventory/consume', async (req, res) => {
 // PUT /api/kitchen/inventory/adjust - Manually adjust stock
 router.put('/inventory/adjust', async (req, res) => {
   try {
-    const { name, quantity, unit, minThreshold } = req.body;
+    const { name, quantity, unit, minThreshold, expiryDate } = req.body;
     if (!name) {
       return res.status(400).json({ message: 'Ingredient name is required.' });
     }
@@ -503,6 +565,7 @@ router.put('/inventory/adjust', async (req, res) => {
       if (typeof quantity === 'number') item.quantity = parseFloat(quantity.toFixed(2));
       if (unit) item.unit = unit.trim();
       if (typeof minThreshold === 'number') item.minThreshold = minThreshold;
+      if (expiryDate !== undefined) item.expiryDate = expiryDate ? new Date(expiryDate) : undefined;
     } else {
       if (typeof quantity !== 'number' || !unit) {
         return res.status(400).json({ message: 'Quantity and unit are required for new inventory items.' });
@@ -511,7 +574,8 @@ router.put('/inventory/adjust', async (req, res) => {
         name: name.trim(),
         quantity: parseFloat(quantity.toFixed(2)),
         unit: unit.trim(),
-        minThreshold: typeof minThreshold === 'number' ? minThreshold : 5
+        minThreshold: typeof minThreshold === 'number' ? minThreshold : 5,
+        expiryDate: expiryDate ? new Date(expiryDate) : undefined
       };
       kitchen.inventory.push(item);
     }
@@ -521,6 +585,171 @@ router.put('/inventory/adjust', async (req, res) => {
   } catch (error) {
     console.error('Adjust inventory error:', error);
     res.status(500).json({ message: 'Internal server error while adjusting inventory.' });
+  }
+});
+
+// POST /api/kitchen/route - Calculate optimized TSP route and fetch OSRM geometries
+router.post('/route', async (req, res) => {
+  try {
+    const { source, basketItems } = req.body;
+    const kitchenLat = req.user.location?.lat;
+    const kitchenLng = req.user.location?.lng;
+
+    if (kitchenLat === undefined || kitchenLng === undefined) {
+      return res.status(400).json({ message: 'Kitchen location coordinates are required.' });
+    }
+
+    let itemsToRoute = [];
+
+    if (source === 'basket') {
+      if (!Array.isArray(basketItems)) {
+        return res.status(400).json({ message: 'basketItems array is required when source is basket.' });
+      }
+      // Populate location coordinates by querying DB for fresh coords to ensure validity
+      const ingredientIds = basketItems.map(item => item.ingredientId);
+      const freshIngredients = await Ingredient.find({ _id: { $in: ingredientIds } }).populate('donorRef', 'name');
+      
+      itemsToRoute = basketItems.map(item => {
+        const fresh = freshIngredients.find(f => f._id.toString() === item.ingredientId);
+        return {
+          id: item.ingredientId,
+          name: item.name,
+          quantity: item.selectedQuantity || item.quantity,
+          unit: item.unit,
+          location: fresh ? fresh.location : item.location,
+          donorName: fresh?.donorRef?.name || item.donorName || 'Donor'
+        };
+      });
+    } else {
+      // Load pending/approved reservations for this kitchen
+      const requests = await Request.find({ soupKitchenRef: req.user.id }).select('_id').lean();
+      const requestIds = requests.map(r => r._id);
+
+      const reservations = await Reservation.find({ 
+        requestRef: { $in: requestIds },
+        deliveryStatus: { $in: ['pending', 'picked_up'] }
+      }).populate({
+        path: 'requestRef',
+        populate: {
+          path: 'ingredientRef',
+          select: 'name category unit donorRef pickupDeadline location'
+        }
+      });
+
+      const populatedReservations = await Promise.all(reservations.map(async r => {
+        const donor = r.requestRef?.ingredientRef?.donorRef 
+          ? await User.findById(r.requestRef.ingredientRef.donorRef).select('name location') 
+          : null;
+        return {
+          id: r._id,
+          name: r.requestRef?.ingredientRef?.name || 'Surplus Item',
+          quantity: r.reservedQuantity,
+          unit: r.requestRef?.ingredientRef?.unit || 'units',
+          location: r.requestRef?.ingredientRef?.location || donor?.location,
+          donorName: donor?.name || 'Donor',
+          rawReservation: r
+        };
+      }));
+
+      itemsToRoute = populatedReservations;
+    }
+
+    const validItems = itemsToRoute.filter(item => item.location && typeof item.location.lat === 'number');
+
+    if (validItems.length === 0) {
+      return res.status(200).json({
+        sequence: [],
+        totalDistance: 0,
+        returnLegDistance: 0,
+        roadGeometry: [],
+        roadDistance: null,
+        roadDuration: null,
+        routingType: 'haversine'
+      });
+    }
+
+    // TSP Optimizer (Nearest Neighbor)
+    const sequence = [];
+    let currentLoc = { lat: kitchenLat, lng: kitchenLng };
+    const unvisited = [...validItems];
+    let totalDistance = 0;
+
+    while (unvisited.length > 0) {
+      let nearestIndex = 0;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < unvisited.length; i++) {
+        const d = getHaversineDistance(
+          currentLoc.lat, currentLoc.lng,
+          unvisited[i].location.lat, unvisited[i].location.lng
+        );
+        if (d < minDistance) {
+          minDistance = d;
+          nearestIndex = i;
+        }
+      }
+
+      const nextStop = unvisited.splice(nearestIndex, 1)[0];
+      sequence.push({
+        ...nextStop,
+        distanceFromLastLeg: minDistance
+      });
+      totalDistance += minDistance;
+      currentLoc = { lat: nextStop.location.lat, lng: nextStop.location.lng };
+    }
+
+    const returnLegDistance = getHaversineDistance(
+      currentLoc.lat, currentLoc.lng,
+      kitchenLat, kitchenLng
+    );
+    totalDistance += returnLegDistance;
+
+    // Fetch OSRM street geometries
+    const startLoc = { lat: kitchenLat, lng: kitchenLng };
+    const coords = [
+      startLoc,
+      ...sequence.map(s => s.location),
+      startLoc
+    ];
+
+    const coordsStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`;
+
+    let roadGeometry = [];
+    let roadDistance = null;
+    let roadDuration = null;
+    let routingType = 'haversine';
+
+    try {
+      const osrmRes = await fetch(osrmUrl);
+      const data = await osrmRes.json();
+      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        const route = data.routes[0];
+        roadGeometry = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        roadDistance = route.distance / 1000; // to km
+        roadDuration = route.duration;
+        routingType = 'osrm';
+      } else {
+        throw new Error('OSRM route status not Ok');
+      }
+    } catch (err) {
+      console.warn('OSRM offline or errored, falling back to radial line layout', err);
+      roadGeometry = coords.map(c => [c.lat, c.lng]);
+    }
+
+    res.status(200).json({
+      sequence,
+      totalDistance,
+      returnLegDistance,
+      roadGeometry,
+      roadDistance,
+      roadDuration,
+      routingType
+    });
+
+  } catch (error) {
+    console.error('Route calculation error:', error);
+    res.status(500).json({ message: 'Internal server error during route optimization.' });
   }
 });
 

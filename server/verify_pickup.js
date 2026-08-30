@@ -66,8 +66,8 @@ async function runTests() {
       })
     });
     const ingDoc = await createIngRes.json();
-    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'approved' });
-    console.log('Ingredient created and approved.');
+    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'available' });
+    console.log('Ingredient created and approved/available.');
 
     // 3. Kitchen 1 requests the ingredient
     console.log('\nKitchen 1 placing request...');
@@ -94,18 +94,29 @@ async function runTests() {
     console.log('Donor list size:', donorResList.length);
     console.log('Donor fetched reservation has pickupCode (expected false/undefined):', fetchedReservation?.hasOwnProperty('pickupCode'));
 
-    // 5. Test: attempt transition to picked_up without code verification (should fail 400)
-    console.log('\nTesting status change to picked_up before code verification...');
-    const invalidPickedUpRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
+    // 5. Test: Transition status to pickup_scheduled (should succeed)
+    console.log('\nTesting status change to pickup_scheduled...');
+    const validScheduledRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'picked_up' })
+      body: JSON.stringify({ deliveryStatus: 'pickup_scheduled' })
     });
-    const invalidPickedUpData = await invalidPickedUpRes.json();
-    console.log('Status change response code (expected 400):', invalidPickedUpRes.status);
-    console.log('Status change response message:', invalidPickedUpData.message);
+    const validScheduledData = await validScheduledRes.json();
+    console.log('Pickup scheduled response code (expected 200):', validScheduledRes.status);
+    console.log('Updated deliveryStatus in DB (expected pickup_scheduled):', validScheduledData.reservation?.deliveryStatus);
 
-    // 6. Test: Donor 2 (unauthorized) tries to verify code (should fail 403)
+    // 6. Test: attempt transition to completed without code verification (should fail 400)
+    console.log('\nTesting status change to completed before code verification...');
+    const invalidCompletedRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
+      body: JSON.stringify({ deliveryStatus: 'completed' })
+    });
+    const invalidCompletedData = await invalidCompletedRes.json();
+    console.log('Status change response code (expected 400):', invalidCompletedRes.status);
+    console.log('Status change response message:', invalidCompletedData.message);
+
+    // 7. Test: Donor 2 (unauthorized) tries to verify code (should fail 403)
     console.log('\nTesting unauthorized Donor 2 verify-pickup attempt...');
     const unauthVerifyRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/verify-pickup`, {
       method: 'PUT',
@@ -116,7 +127,7 @@ async function runTests() {
     console.log('Unauthorized verification response code (expected 403):', unauthVerifyRes.status);
     console.log('Unauthorized verification message:', unauthVerifyData.message);
 
-    // 7. Test: Donor 1 tries wrong code (should fail 400)
+    // 8. Test: Donor 1 tries wrong code (should fail 400)
     console.log('\nTesting wrong code verification attempt...');
     const wrongCodeVerifyRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/verify-pickup`, {
       method: 'PUT',
@@ -127,7 +138,7 @@ async function runTests() {
     console.log('Wrong code response code (expected 400):', wrongCodeVerifyRes.status);
     console.log('Wrong code message:', wrongCodeVerifyData.message);
 
-    // 8. Test: Donor 1 tries correct code (should succeed)
+    // 9. Test: Donor 1 tries correct code (should succeed and transition to handed_over)
     console.log('\nTesting correct code verification...');
     const correctCodeVerifyRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/verify-pickup`, {
       method: 'PUT',
@@ -136,29 +147,19 @@ async function runTests() {
     });
     const correctCodeVerifyData = await correctCodeVerifyRes.json();
     console.log('Correct code verification response code (expected 200):', correctCodeVerifyRes.status);
-    console.log('Reservation pickupConfirmedByDonor in DB:', correctCodeVerifyData.reservation?.pickupConfirmedByDonor);
+    console.log('Reservation pickupConfirmedByDonor in DB (expected true):', correctCodeVerifyData.reservation?.pickupConfirmedByDonor);
+    console.log('Reservation deliveryStatus in DB (expected handed_over):', correctCodeVerifyData.reservation?.deliveryStatus);
 
-    // 9. Test: Transition status to picked_up (should now succeed)
-    console.log('\nTesting status change to picked_up after verification...');
-    const validPickedUpRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
+    // 10. Test: Transition status to completed (should succeed and set request status to completed)
+    console.log('\nTesting status change to completed...');
+    const validCompletedRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'picked_up' })
+      body: JSON.stringify({ deliveryStatus: 'completed' })
     });
-    const validPickedUpData = await validPickedUpRes.json();
-    console.log('Status change response code (expected 200):', validPickedUpRes.status);
-    console.log('Updated deliveryStatus in DB:', validPickedUpData.reservation?.deliveryStatus);
-
-    // 10. Test: Transition status to delivered (should succeed and set request status to fulfilled)
-    console.log('\nTesting status change to delivered...');
-    const validDeliveredRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/delivery-status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donor1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'delivered' })
-    });
-    const validDeliveredData = await validDeliveredRes.json();
-    console.log('Delivered status response code (expected 200):', validDeliveredRes.status);
-    console.log('Updated Request status (expected fulfilled):', validDeliveredData.requestStatus);
+    const validCompletedData = await validCompletedRes.json();
+    console.log('Completed status response code (expected 200):', validCompletedRes.status);
+    console.log('Updated Request status (expected completed):', validCompletedData.requestStatus);
 
     console.log('\n--- ALL PICKUP CODE VERIFICATION TESTS PASSED ---');
 

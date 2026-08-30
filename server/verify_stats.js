@@ -68,8 +68,8 @@ async function runTests() {
       })
     });
     const ingDoc = await createIngRes.json();
-    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'approved' });
-    console.log('Ingredient created and approved.');
+    await Ingredient.findByIdAndUpdate(ingDoc._id, { status: 'available' });
+    console.log('Ingredient created and approved/available.');
 
     // 3. Place a request (creates a reservation, decrements quantity)
     console.log('Placing a request for 10 kg...');
@@ -85,32 +85,34 @@ async function runTests() {
     const reservationId = reqData.reservation?._id;
     console.log('Reservation created (ID):', reservationId);
 
-    // 4. Update status to picked_up
-    console.log('\nUpdating reservation status to picked_up...');
-    const statusPickedUpRes = await fetch(`${BASE_URL}/api/kitchen/reservations/${reservationId}/delivery-status`, {
+    // 4. Update status to pickup_scheduled and verify code
+    console.log('\nScheduling pickup...');
+    await fetch(`${BASE_URL}/api/kitchen/reservations/${reservationId}/delivery-status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${k1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'picked_up' })
+      body: JSON.stringify({ deliveryStatus: 'pickup_scheduled' })
     });
-    const text = await statusPickedUpRes.text();
-    console.log('Status Response Code:', statusPickedUpRes.status);
-    console.log('Status Response Text:', text.substring(0, 1000));
-    const pickedUpData = JSON.parse(text);
-    console.log('Status Response Code:', statusPickedUpRes.status);
-    console.log('Reservation deliveryStatus in DB (expected picked_up):', pickedUpData.reservation?.deliveryStatus);
-    console.log('Request status in DB (expected reserved):', pickedUpData.requestStatus);
 
-    // 5. Update status to delivered
-    console.log('\nUpdating reservation status to delivered...');
+    console.log('\nVerifying pickup code...');
+    const verifyCodeRes = await fetch(`${BASE_URL}/api/reservations/${reservationId}/verify-pickup`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${donorToken}` },
+      body: JSON.stringify({ enteredCode: reqData.reservation?.pickupCode })
+    });
+    const verifyCodeData = await verifyCodeRes.json();
+    console.log('Reservation deliveryStatus in DB (expected handed_over):', verifyCodeData.reservation?.deliveryStatus);
+
+    // 5. Update status to completed
+    console.log('\nUpdating reservation status to completed...');
     const statusDeliveredRes = await fetch(`${BASE_URL}/api/kitchen/reservations/${reservationId}/delivery-status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${k1Token}` },
-      body: JSON.stringify({ deliveryStatus: 'delivered' })
+      body: JSON.stringify({ deliveryStatus: 'completed' })
     });
     const deliveredData = await statusDeliveredRes.json();
     console.log('Status Response Code:', statusDeliveredRes.status);
-    console.log('Reservation deliveryStatus in DB (expected delivered):', deliveredData.reservation?.deliveryStatus);
-    console.log('Request status in DB (expected fulfilled):', deliveredData.requestStatus);
+    console.log('Reservation deliveryStatus in DB (expected completed):', deliveredData.reservation?.deliveryStatus);
+    console.log('Request status in DB (expected completed):', deliveredData.requestStatus);
 
     // 6. Verify notification was sent to donor
     console.log('\nVerifying Notification sent to donor...');
@@ -142,6 +144,12 @@ async function runTests() {
     console.log('- Global Ingredients:', adminStats.totalIngredients);
     console.log('- Global Fulfilled Requests (expected >= 1):', adminStats.totalFulfilled);
     console.log('- Active Food Donors:', adminStats.activeDonors);
+    console.log('- Prevented Waste (Kg):', adminStats.preventedWasteKg);
+
+    if (adminStats.preventedWasteKg < 10) {
+      throw new Error(`Assertion failed: preventedWasteKg (${adminStats.preventedWasteKg}) should be at least 10 kg`);
+    }
+    console.log('Assertion PASSED: preventedWasteKg is at least 10 kg.');
 
     console.log('\n--- ALL STATUS FLOW & STATS TESTS PASSED ---');
 

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/community_food_portal';
 
@@ -16,7 +17,9 @@ async function runTest() {
     email: 'testhook1@example.com',
     passwordHash: 'hash',
     role: 'donor',
-    location: { lat: 10, lng: 20 }
+    location: { lat: 10, lng: 20 },
+    contactPerson: 'Jane Hook',
+    authorityToDonate: true
   });
   await user.save();
 

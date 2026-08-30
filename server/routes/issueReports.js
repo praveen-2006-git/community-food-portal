@@ -35,9 +35,9 @@ router.post('/', authorizeRoles('soup_kitchen'), async (req, res) => {
       return res.status(403).json({ message: 'Access denied. You did not place this reservation.' });
     }
 
-    // Verify reservation status is picked_up or delivered
-    if (!['picked_up', 'delivered'].includes(reservation.deliveryStatus)) {
-      return res.status(400).json({ message: 'Issue reports can only be submitted for picked up or delivered ingredients.' });
+    // Verify reservation status is handed_over or completed
+    if (!['handed_over', 'completed'].includes(reservation.deliveryStatus)) {
+      return res.status(400).json({ message: 'Issue reports can only be submitted for handed over or completed ingredients.' });
     }
 
     // Reject if a "pending" report already exists for this reservationRef
@@ -105,11 +105,8 @@ router.put('/:id/resolve', authorizeRoles('admin'), async (req, res) => {
       if (ingredient) {
         const donor = await User.findById(ingredient.donorRef);
         if (donor) {
-          donor.reputationScore = Math.max(0, donor.reputationScore - 15);
-          if (donor.reputationScore < 40) {
-            donor.isActive = false;
-          }
-          await donor.save();
+        donor.reputationScore = Math.max(0, donor.reputationScore - 15);
+        await donor.save();
           report.reputationDeducted = true;
           console.log(`[Admin Resolve] Deducted 15 points from donor ${donor.name} (${donor._id}). New score: ${donor.reputationScore}. Active: ${donor.isActive}`);
         }
@@ -123,7 +120,10 @@ router.put('/:id/resolve', authorizeRoles('admin'), async (req, res) => {
       adminRef: req.user.id,
       action: 'resolve_dispute',
       targetId: report._id,
-      details: `Resolved dispute to status: ${report.status}.`
+      details: `Resolved dispute to status: ${report.status}.`,
+      actorIP: req.ip || req.headers['x-forwarded-for'] || '',
+      actorUserAgent: req.headers['user-agent'] || '',
+      actorEmail: req.user.email || ''
     });
     await auditLog.save();
 

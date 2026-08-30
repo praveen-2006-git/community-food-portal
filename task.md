@@ -1,0 +1,9 @@
+- [x] Step 1: Separate status enums in Ingredient, Reservation, and Request models.
+- [x] Step 2: Implement MongoDB transaction capability check on startup in db.js.
+- [x] Step 3: Implement Secure Handover codes (HMAC-SHA256, timingSafeEqual, single-use, max attempts, expiry) and atomic transactions in reservations.js and kitchen.js.
+- [x] Step 4: Correct Expiry Sweeper behavior in cron.js to avoid expiring active reservations and send idempotent delay warnings.
+- [x] Step 5: Expand Audit Log fields and logging logic.
+- [x] Step 6: Rename OSRM labels in UI and docs to "Pickup Route Support".
+- [x] Step 7: Update Migration script to convert existing statuses and plaintext codes.
+- [x] Step 8: Create verify_corrections.js and update verify_all.js to run it.
+- [x] Step 9: Verify everything runs successfully.
