@@ -28,23 +28,34 @@ function MapController({ selectedKitchen, selectedIngredient, ingredients }) {
   const map = useMap();
   
   useEffect(() => {
-    if (!map) return;
+    if (!map || !map._container || !map._mapPane) return;
     const bounds = [];
     
     if (selectedKitchen && selectedIngredient) {
-      bounds.push([selectedKitchen.location.lat, selectedKitchen.location.lng]);
-      bounds.push([selectedIngredient.location.lat, selectedIngredient.location.lng]);
+      if (selectedKitchen?.location?.lat && selectedKitchen?.location?.lng && 
+          selectedIngredient?.location?.lat && selectedIngredient?.location?.lng) {
+        bounds.push([selectedKitchen.location.lat, selectedKitchen.location.lng]);
+        bounds.push([selectedIngredient.location.lat, selectedIngredient.location.lng]);
+      }
     } else {
-      if (selectedKitchen) {
+      if (selectedKitchen?.location?.lat && selectedKitchen?.location?.lng) {
         bounds.push([selectedKitchen.location.lat, selectedKitchen.location.lng]);
       }
-      ingredients.forEach((ing) => {
-        bounds.push([ing.location.lat, ing.location.lng]);
-      });
+      if (Array.isArray(ingredients)) {
+        ingredients.forEach((ing) => {
+          if (ing?.location?.lat && ing?.location?.lng) {
+            bounds.push([ing.location.lat, ing.location.lng]);
+          }
+        });
+      }
     }
     
     if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      try {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: false });
+      } catch (err) {
+        // Gracefully ignore zoom transition on unmounted container
+      }
     }
   }, [map, selectedKitchen, selectedIngredient, ingredients]);
   
