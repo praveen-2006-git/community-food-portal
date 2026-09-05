@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import LoginRegister from './pages/LoginRegister';
 import DonorDashboard from './pages/DonorDashboard';
 import KitchenDashboard from './pages/KitchenDashboard';
@@ -11,6 +11,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
@@ -46,8 +47,9 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <p>Loading application...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(16, 185, 129, 0.2)', borderTopColor: '#10B981', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Loading application...</p>
       </div>
     );
   }
@@ -69,38 +71,50 @@ function AppContent() {
     <div className="app-container">
       {user && (
         <header className="navbar glass-panel">
-          <div className="brand">
-            🌱 Community Food Portal
-          </div>
+          <Link to="/" className="brand">
+            <span style={{ fontSize: '1.4rem' }}>🌱</span>
+            <span>Community Food Portal</span>
+          </Link>
           <nav className="nav-links">
             {user.role === 'donor' && (
-              <Link to="/donor" className="nav-link">My Listings</Link>
+              <Link to="/donor" className={`nav-link ${location.pathname === '/donor' ? 'active' : ''}`}>
+                My Listings
+              </Link>
             )}
             {user.role === 'soup_kitchen' && (
               <>
-                <Link to="/kitchen" className="nav-link">Dashboard</Link>
-                <Link to="/map" className="nav-link">Pickup Route Support</Link>
+                <Link to="/kitchen" className={`nav-link ${location.pathname === '/kitchen' ? 'active' : ''}`}>
+                  Dashboard
+                </Link>
+                <Link to="/map" className={`nav-link ${location.pathname === '/map' ? 'active' : ''}`}>
+                  Pickup Route Support
+                </Link>
               </>
             )}
             {user.role === 'admin' && (
               <>
-                <Link to="/admin" className="nav-link">Admin Panel</Link>
-                <Link to="/map" className="nav-link">Pickup Route Support</Link>
+                <Link to="/admin" className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}>
+                  Admin Panel
+                </Link>
+                <Link to="/map" className={`nav-link ${location.pathname === '/map' ? 'active' : ''}`}>
+                  Pickup Route Support
+                </Link>
               </>
             )}
             <div className="user-badge">
-              <span>{user.name}</span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }}></span>
+              <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</span>
               <span className="role-tag">{user.role.replace('_', ' ')}</span>
             </div>
             <button 
               onClick={toggleTheme} 
               className="btn btn-secondary" 
-              style={{ padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}
-              title={theme === 'light' ? 'Toggle Dark Mode' : 'Toggle Light Mode'}
+              style={{ padding: '0.45rem 0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem', minWidth: '40px' }}
+              title={theme === 'light' ? 'Switch to Obsidian Dark' : 'Switch to Clean Light'}
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
-            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} onClick={handleLogout}>
+            <button className="btn btn-secondary" style={{ padding: '0.45rem 0.95rem' }} onClick={handleLogout}>
               Logout
             </button>
           </nav>
