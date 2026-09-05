@@ -304,18 +304,29 @@ export default function DonorDashboard({ user }) {
 
       {/* Stats Row */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
-          <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Ingredients Donated</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>{stats.totalIngredients}</span>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <span className="stat-label">Total Ingredients Donated</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+              <span className="stat-value">{stats.totalIngredients}</span>
+              <span style={{ fontSize: '1.4rem' }}>🌾</span>
+            </div>
           </div>
-          <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Requests Fulfilled</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', fontFamily: 'Outfit, sans-serif' }}>{stats.totalFulfilled}</span>
+          <div className="stat-card">
+            <span className="stat-label">Requests Fulfilled</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+              <span className="stat-value" style={{ color: '#10b981' }}>{stats.totalFulfilled}</span>
+              <span style={{ fontSize: '1.4rem' }}>🍲</span>
+            </div>
           </div>
-          <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Reputation Score</span>
-            <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#3b82f6', fontFamily: 'Outfit, sans-serif' }}>{stats.reputationScore} pts</span>
+          <div className="stat-card">
+            <span className="stat-label">Reputation Score</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+              <span className="stat-value" style={{ color: stats.reputationScore >= 60 ? '#10b981' : stats.reputationScore >= 40 ? '#f59e0b' : '#ef4444' }}>
+                {stats.reputationScore} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-secondary)' }}>pts</span>
+              </span>
+              <span style={{ fontSize: '1.4rem' }}>⭐</span>
+            </div>
           </div>
         </div>
       )}
@@ -323,19 +334,21 @@ export default function DonorDashboard({ user }) {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      {loading && <p>Loading your food listings...</p>}
+      {loading && <p style={{ color: 'var(--text-secondary)' }}>Loading your food listings...</p>}
 
       {!loading && ingredients.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <p>You have not uploaded any ingredient listings yet.</p>
-          <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={handleOpenAddModal}>
-            Upload Your First Ingredient
+        <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📦</div>
+          <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem', fontSize: '1.2rem' }}>No Active Food Listings</h3>
+          <p style={{ maxWidth: '400px', margin: '0 auto', fontSize: '0.9rem' }}>You have not uploaded any surplus ingredients yet. List your surplus food to help local soup kitchens.</p>
+          <button className="btn btn-primary" style={{ marginTop: '1.25rem' }} onClick={handleOpenAddModal}>
+            + Upload Your First Ingredient
           </button>
         </div>
       ) : (
         <div className="listings-grid">
           {ingredients.map((ing) => (
-            <div key={ing._id} className="ingredient-card glass-panel">
+            <div key={ing._id} className="ingredient-card">
               <div className="card-header">
                 <div>
                   <h3 className="card-title">{ing.name}</h3>
@@ -348,7 +361,7 @@ export default function DonorDashboard({ user }) {
               <div className="card-body">
                 <div className="info-item">
                   <span className="info-label">Quantity:</span>
-                  <span className="info-value">{ing.quantity} {ing.unit}</span>
+                  <span className="info-value" style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{ing.quantity} {ing.unit}</span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">Storage Type:</span>
@@ -360,26 +373,26 @@ export default function DonorDashboard({ user }) {
                 </div>
                 <div className="info-item">
                   <span className="info-label">Pickup Deadline:</span>
-                  <span className="info-value">{formatDate(ing.pickupDeadline)}</span>
+                  <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(ing.pickupDeadline)}</span>
                 </div>
-                <div className="info-item" style={{ marginTop: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.4rem' }}>
-                  <span className="info-label">Coordinates:</span>
-                  <span className="info-value" style={{ fontSize: '0.8rem' }}>
+                <div className="info-item" style={{ marginTop: '0.2rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+                  <span className="info-label">Location:</span>
+                  <span className="info-value" style={{ fontSize: '0.78rem' }}>
                     {ing.location.lat.toFixed(4)}, {ing.location.lng.toFixed(4)}
                   </span>
                 </div>
               </div>
-              <div className="card-footer">
+              <div className="card-footer" style={{ flexDirection: 'row' }}>
                 <button 
                   className="btn btn-secondary" 
-                  style={{ flex: 1, padding: '0.4rem' }}
+                  style={{ flex: 1, padding: '0.45rem' }}
                   onClick={() => handleOpenEditModal(ing)}
                 >
                   Edit
                 </button>
                 <button 
                   className="btn btn-danger" 
-                  style={{ flex: 1, padding: '0.4rem' }}
+                  style={{ flex: 1, padding: '0.45rem' }}
                   onClick={() => handleDelete(ing._id)}
                 >
                   Delete
@@ -391,10 +404,23 @@ export default function DonorDashboard({ user }) {
       )}
 
       {/* Pending Pickups / Verification section */}
-      <div style={{ marginTop: '3rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.25rem', color: 'var(--text-primary)' }}>Pending Food Pickups & Verification</h2>
+      <div style={{ marginTop: '3.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
+              Pending Food Pickups & Verification
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+              Verify collector OTP codes upon arrival and confirm handovers
+            </p>
+          </div>
+          <span className="status-badge" style={{ fontSize: '0.8rem' }}>
+            {reservations.length} Active Reservations
+          </span>
+        </div>
+
         {reservations.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <div className="glass-panel" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
             <p>No active reservations are currently pending pickup for your ingredients.</p>
           </div>
         ) : (
@@ -406,25 +432,25 @@ export default function DonorDashboard({ user }) {
               const isChecked = !!confirmedChecks[res._id];
 
               return (
-                <div key={res._id} className="ingredient-card glass-panel" style={{ border: isConfirmed ? '1px solid #10b981' : '1px solid var(--border-color)', height: 'fit-content' }}>
+                <div key={res._id} className="ingredient-card" style={{ border: isConfirmed ? '1px solid #10b981' : '1px solid var(--border-color)', height: 'fit-content' }}>
                   <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3 className="card-title">{ing?.name || 'Unknown Ingredient'}</h3>
-                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.75rem' }}>
+                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.72rem' }}>
                         {res.deliveryStatus.replace('_', ' ')}
                       </span>
                     </div>
                     <div className="card-category" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
                       <span>{ing?.category || 'N/A'}</span>
-                      <span style={{ fontSize: '0.8rem', color: isConfirmed ? '#10b981' : '#f59e0b', fontWeight: 600 }}>
-                        {isConfirmed ? 'Code Verified' : 'Awaiting Verification'}
+                      <span style={{ fontSize: '0.8rem', color: isConfirmed ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
+                        {isConfirmed ? '✓ Code Verified' : '⏳ Awaiting Verification'}
                       </span>
                     </div>
                   </div>
                   <div className="card-body">
                     <div className="info-item">
                       <span className="info-label">Reserved Quantity:</span>
-                      <span className="info-value" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                      <span className="info-value" style={{ color: 'var(--accent-color)', fontWeight: 700 }}>
                         {res.reservedQuantity} {ing?.unit}
                       </span>
                     </div>
@@ -434,50 +460,74 @@ export default function DonorDashboard({ user }) {
                     </div>
 
                     {res.deliveryStatus === 'claimed' && (
-                      <div style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.6rem', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.82rem', textAlign: 'center' }}>
                         Awaiting kitchen to schedule pickup
                       </div>
                     )}
 
-                    {res.deliveryStatus === 'pickup_scheduled' && (
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter Collector's Verification Code</label>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input 
-                              type="text" 
-                              placeholder="6-digit code" 
-                              className="form-control"
-                              style={{ flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.9rem' }}
-                              value={enteredCodes[res._id] || ''}
-                              onChange={(e) => setEnteredCodes({ ...enteredCodes, [res._id]: e.target.value })}
-                            />
-                            <button 
-                              className="btn btn-primary"
-                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
-                              onClick={() => handleVerifyPickup(res._id)}
-                            >
-                              Verify
-                            </button>
-                          </div>
+                    {res.deliveryStatus === 'pickup_scheduled' && !isConfirmed && (
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.9rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Enter Collector's 6-Digit OTP</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                          <input 
+                            type="text" 
+                            maxLength="6"
+                            placeholder="6-digit code" 
+                            className="form-control"
+                            style={{ flex: 1, padding: '0.45rem 0.65rem', fontSize: '0.95rem', letterSpacing: '2px', textAlign: 'center', fontWeight: 700 }}
+                            value={enteredCodes[res._id] || ''}
+                            onChange={(e) => setEnteredCodes({ ...enteredCodes, [res._id]: e.target.value })}
+                          />
+                          <button 
+                            className="btn btn-primary"
+                            style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+                            onClick={() => handleVerifyPickup(res._id)}
+                          >
+                            Verify OTP
+                          </button>
                         </div>
                       </div>
                     )}
 
+                    {res.deliveryStatus === 'pickup_scheduled' && isConfirmed && (
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', background: 'rgba(16, 185, 129, 0.08)', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                          <input 
+                            type="checkbox" 
+                            id={`confirm-${res._id}`}
+                            checked={isChecked}
+                            onChange={(e) => setConfirmedChecks({ ...confirmedChecks, [res._id]: e.target.checked })}
+                            style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                          />
+                          <label htmlFor={`confirm-${res._id}`} style={{ fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}>
+                            I confirm the physical handover of <strong>{res.reservedQuantity} {ing?.unit}</strong> to the collector.
+                          </label>
+                        </div>
+                        <button 
+                          className="btn btn-primary"
+                          style={{ width: '100%', padding: '0.5rem' }}
+                          disabled={!isChecked}
+                          onClick={() => handleMarkPickedUp(res._id)}
+                        >
+                          Confirm Handover & Complete Pickup
+                        </button>
+                      </div>
+                    )}
+
                     {res.deliveryStatus === 'handed_over' && (
-                      <div style={{ marginTop: '1rem', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
-                        ✓ Handed Over (Awaiting Kitchen Completion)
+                      <div style={{ marginTop: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.6rem', borderRadius: '8px', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
+                        ✓ Handed Over (Awaiting Kitchen Receipt)
                       </div>
                     )}
 
                     {res.deliveryStatus === 'completed' && (
-                      <div style={{ marginTop: '1rem', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.6rem', borderRadius: '8px', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
                         ✓ Completed Successfully
                       </div>
                     )}
 
                     {res.deliveryStatus === 'cancelled' && (
-                      <div style={{ marginTop: '1rem', color: '#9ca3af', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.6rem', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>
                         Reservation Cancelled
                       </div>
                     )}
@@ -491,97 +541,99 @@ export default function DonorDashboard({ user }) {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel">
+        <div className="modal-backdrop">
+          <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title">Upload Surplus Ingredient</h2>
-              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem' }} onClick={() => setShowAddModal(false)}>X</button>
+              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowAddModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddSubmit}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Ingredient Name</label>
-                  <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Tomatoes" />
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Ingredient Name</label>
+                    <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Tomatoes" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
+                      <option value="Vegetables">Vegetables</option>
+                      <option value="Fruits">Fruits</option>
+                      <option value="Bakery">Bakery</option>
+                      <option value="Dairy">Dairy</option>
+                      <option value="Grains">Grains</option>
+                      <option value="Meat">Meat</option>
+                      <option value="Canned Goods">Canned Goods</option>
+                      <option value="Spices">Spices</option>
+                    </select>
+                  </div>
                 </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Quantity</label>
+                    <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="10" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Unit</label>
+                    <input type="text" className="form-control" required value={unit} onChange={e => setUnit(e.target.value)} placeholder="kg, liters, loaves" />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Expiry Date</label>
+                    <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Pickup Deadline</label>
+                    <input type="date" min={expiryDate || new Date().toISOString().split('T')[0]} className="form-control" required value={pickupDeadline} onChange={e => setPickupDeadline(e.target.value)} />
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="Bakery">Bakery</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Grains">Grains</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Canned Goods">Canned Goods</option>
-                    <option value="Spices">Spices</option>
+                  <label className="form-label">Storage Type</label>
+                  <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
+                    <option value="Ambient">Ambient (Room Temperature)</option>
+                    <option value="Chilled">Chilled (Refrigerated)</option>
+                    <option value="Frozen">Frozen</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Quantity</label>
-                  <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="10" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Unit</label>
-                  <input type="text" className="form-control" required value={unit} onChange={e => setUnit(e.target.value)} placeholder="kg, liters, loaves" />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Expiry Date</label>
-                  <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Pickup Deadline</label>
-                  <input type="date" min={expiryDate || new Date().toISOString().split('T')[0]} className="form-control" required value={pickupDeadline} onChange={e => setPickupDeadline(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Storage Type</label>
-                <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
-                  <option value="Ambient">Ambient (Room Temperature)</option>
-                  <option value="Chilled">Chilled (Refrigerated)</option>
-                  <option value="Frozen">Frozen</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Pickup Location (Map click or manual edit)</label>
-                <div className="map-container">
-                  <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
-                </div>
-                <div className="form-row">
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Latitude</label>
-                    <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
+                  <label className="form-label">Pickup Location (Click map or type coords)</label>
+                  <div className="map-container" style={{ height: '200px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                    <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
                   </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Longitude</label>
-                    <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
+                  <div className="form-row" style={{ marginTop: '0.5rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Latitude</label>
+                      <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Longitude</label>
+                      <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
+                    </div>
                   </div>
                 </div>
+
+                <div className="form-group" style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                    <input 
+                      type="checkbox" 
+                      required 
+                      checked={donorDeclaration} 
+                      onChange={e => setDonorDeclaration(e.target.checked)} 
+                      style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                    />
+                    <span>I declare this surplus food is intact, not expired, safely stored, uncontaminated, and accurately weighed.</span>
+                  </label>
+                </div>
               </div>
 
-              <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <input 
-                    type="checkbox" 
-                    required 
-                    checked={donorDeclaration} 
-                    onChange={e => setDonorDeclaration(e.target.checked)} 
-                    style={{ marginTop: '0.2rem' }}
-                  />
-                  <span>I declare this listing is accurate: packaging intact, expiry valid, properly stored, no contamination, quantity accurate.</span>
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Submit</button>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Submit Listing</button>
               </div>
             </form>
           </div>
@@ -590,84 +642,86 @@ export default function DonorDashboard({ user }) {
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel">
+        <div className="modal-backdrop">
+          <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title">Edit Food Listing</h2>
-              <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem' }} onClick={() => setShowEditModal(false)}>X</button>
+              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowEditModal(false)}>✕</button>
             </div>
             <form onSubmit={handleEditSubmit}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Ingredient Name</label>
-                  <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Ingredient Name</label>
+                    <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
+                      <option value="Vegetables">Vegetables</option>
+                      <option value="Fruits">Fruits</option>
+                      <option value="Bakery">Bakery</option>
+                      <option value="Dairy">Dairy</option>
+                      <option value="Grains">Grains</option>
+                      <option value="Meat">Meat</option>
+                      <option value="Canned Goods">Canned Goods</option>
+                      <option value="Spices">Spices</option>
+                    </select>
+                  </div>
                 </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Quantity</label>
+                    <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Unit</label>
+                    <input type="text" className="form-control" required value={unit} onChange={e => setUnit(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Expiry Date</label>
+                    <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} disabled={user?.role === 'donor'} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Pickup Deadline</label>
+                    <input type="date" min={expiryDate || new Date().toISOString().split('T')[0]} className="form-control" required value={pickupDeadline} onChange={e => setPickupDeadline(e.target.value)} disabled={user?.role === 'donor'} />
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="Bakery">Bakery</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Grains">Grains</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Canned Goods">Canned Goods</option>
-                    <option value="Spices">Spices</option>
+                  <label className="form-label">Storage Type</label>
+                  <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
+                    <option value="Ambient">Ambient</option>
+                    <option value="Chilled">Chilled</option>
+                    <option value="Frozen">Frozen</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Quantity</label>
-                  <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Unit</label>
-                  <input type="text" className="form-control" required value={unit} onChange={e => setUnit(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Expiry Date</label>
-                  <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} disabled={user?.role === 'donor'} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Pickup Deadline</label>
-                  <input type="date" min={expiryDate || new Date().toISOString().split('T')[0]} className="form-control" required value={pickupDeadline} onChange={e => setPickupDeadline(e.target.value)} disabled={user?.role === 'donor'} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Storage Type</label>
-                <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
-                  <option value="Ambient">Ambient</option>
-                  <option value="Chilled">Chilled</option>
-                  <option value="Frozen">Frozen</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Pickup Location (Map click or manual edit)</label>
-                <div className="map-container">
-                  <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
-                </div>
-                <div className="form-row">
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Latitude</label>
-                    <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
+                  <label className="form-label">Pickup Location (Click map or type coords)</label>
+                  <div className="map-container" style={{ height: '200px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                    <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
                   </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Longitude</label>
-                    <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
+                  <div className="form-row" style={{ marginTop: '0.5rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Latitude</label>
+                      <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Longitude</label>
+                      <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowEditModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Changes</button>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>
             </form>
           </div>
