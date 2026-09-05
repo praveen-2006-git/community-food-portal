@@ -23,6 +23,7 @@ export default function KitchenDashboard({ user }) {
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [reason, setReason] = useState('');
   const [proofDescription, setProofDescription] = useState('');
+  const [activePickupCodes, setActivePickupCodes] = useState({});
 
   const token = localStorage.getItem('token');
 
@@ -111,9 +112,41 @@ export default function KitchenDashboard({ user }) {
 
       if (!res.ok) throw new Error(data.message || 'Failed to request ingredient.');
 
+      if (data.reservation?._id && data.reservation?.pickupCode) {
+        setActivePickupCodes(prev => ({
+          ...prev,
+          [data.reservation._id]: data.reservation.pickupCode
+        }));
+      }
+
       setSuccess(`Successfully requested ${qty} ${selectedIngredient.unit} of "${selectedIngredient.name}"!`);
       setShowRequestModal(false);
       fetchIngredients();
+      fetchReservations();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRegenerateCode = async (resId) => {
+    setError('');
+    setSuccess('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/reservations/${resId}/regenerate-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to generate pickup code.');
+
+      setActivePickupCodes(prev => ({
+        ...prev,
+        [resId]: data.pickupCode
+      }));
+      setSuccess(`Generated fresh 6-digit pickup OTP: ${data.pickupCode}`);
     } catch (err) {
       setError(err.message);
     }
@@ -363,16 +396,49 @@ export default function KitchenDashboard({ user }) {
                         <span className="info-value" style={{ color: '#60a5fa' }}>{req?.volunteerName}</span>
                       </div>
                     )}
-                    <div className="info-item">
-                      <span className="info-label">Expires At:</span>
-                      <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(res.expiresAt)}</span>
-                    </div>
-                    {res.pickupCode && res.pickupCode.length === 6 && ['claimed', 'pickup_scheduled'].includes(res.deliveryStatus) && (
-                      <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px dashed #3b82f6' }}>
-                        <span className="info-label" style={{ color: '#60a5fa' }}>Pickup Code (Share with collector):</span>
-                        <span className="info-value" style={{ color: 'var(--text-primary)', fontWeight: 700, letterSpacing: '1px' }}>{res.pickupCode}</span>
-                      </div>
-                    )}
+                    {/* 6-Digit Pickup OTP Section */}
+                    {(() => {
+                      const codeToShow = activePickupCodes[res._id] || (res.pickupCode && res.pickupCode.length === 6 ? res.pickupCode : null);
+                      if (codeToShow && ['claimed', 'pickup_scheduled'].includes(res.deliveryStatus)) {
+                        return (
+                          <div style={{ background: 'rgba(59, 130, 246, 0.12)', border: '1px solid #3b82f6', borderRadius: '8px', padding: '0.6rem 0.8rem', marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                🔐 6-Digit Pickup OTP
+                              </span>
+                              <button 
+                                type="button"
+                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                                onClick={() => handleRegenerateCode(res._id)}
+                              >
+                                Regenerate
+                              </button>
+                            </div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '4px', fontFamily: 'monospace', textAlign: 'center', margin: '0.2rem 0' }}>
+                              {codeToShow}
+                            </div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                              Share this code with the Donor upon physical food collection
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (['claimed', 'pickup_scheduled'].includes(res.deliveryStatus)) {
+                        return (
+                          <div style={{ marginTop: '0.75rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', borderColor: '#3b82f6', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.08)', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem' }}
+                              onClick={() => handleRegenerateCode(res._id)}
+                            >
+                              <span>🔑</span> View / Generate Pickup OTP
+                            </button>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="card-footer" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {res.deliveryStatus === 'claimed' && (
