@@ -22,7 +22,10 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    document.body.className = theme === 'light' ? 'light-theme' : '';
+    const className = theme === 'light' ? 'light-theme' : '';
+    document.body.className = className;
+    document.documentElement.className = className;
+    document.documentElement.style.backgroundColor = theme === 'light' ? '#FFFFFF' : '#000000';
     localStorage.setItem('theme', theme);
   }, [theme]);
 
