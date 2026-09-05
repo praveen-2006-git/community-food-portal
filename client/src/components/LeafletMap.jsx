@@ -63,7 +63,12 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
     // Clean up map instance on unmount
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.off();
+          mapRef.current.remove();
+        } catch (err) {
+          // Graceful cleanup
+        }
         mapRef.current = null;
       }
     };
