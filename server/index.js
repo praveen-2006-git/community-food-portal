@@ -53,16 +53,19 @@ connectDB();
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 if (NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
-  console.error('\n================================================================');
-  console.error('CRITICAL ERROR: FRONTEND_URL environment variable is missing.');
-  console.error('This is required in production to restrict CORS strictly.');
-  console.error('================================================================\n');
-  throw new Error('FRONTEND_URL environment variable is missing in production');
+  console.warn('\n================================================================');
+  console.warn('WARNING: FRONTEND_URL environment variable is not set.');
+  console.warn('Falling back to *.vercel.app wildcard CORS rule.');
+  console.warn('Set FRONTEND_URL on Render to be explicit about the allowed origin.');
+  console.warn('================================================================\n');
 }
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://127.0.0.1:5173'
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'https://community-food-portal.vercel.app',  // production Vercel frontend
 ];
 
 if (process.env.FRONTEND_URL) {
@@ -152,6 +155,17 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/issue-reports', issueReportRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Public health-check endpoint — used by keep-alive pings (UptimeRobot etc.)
+// to prevent Render free-tier cold starts. No auth required.
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    service: 'SurplusLink API'
+  });
+});
 
 // Protected Test Routes to verify Middleware
 app.get('/api/test/any', authenticateJWT, (req, res) => {
