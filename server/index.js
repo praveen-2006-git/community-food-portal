@@ -79,10 +79,16 @@ const corsOptions = {
       return callback(null, true);
     }
     return callback(new Error('CORS policy block'), false);
-  }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-test-rate-limit'],
 };
 
 app.use(cors(corsOptions));
+// Handle OPTIONS preflight for ALL routes explicitly
+app.options('*', cors(corsOptions));
+
 
 app.use(helmet({
   contentSecurityPolicy: NODE_ENV === 'production' ? {
