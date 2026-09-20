@@ -9,12 +9,16 @@ const { hashPickupCode, verifyPickupCode } = require('../utils/security');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
 const { runWithTransaction } = require('../utils/transactionHelper');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 
 const verifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: (req) => (req.headers['x-test-rate-limit'] === 'true' ? 15 : (process.env.NODE_ENV === 'production' ? 15 : 5000)),
-  keyGenerator: (req) => (req.headers['x-test-rate-limit'] === 'true' ? `test-${req.ip}` : req.ip),
-  validate: { keyGeneratorIpFallback: false },
+  // Use ipKeyGenerator helper for proper IPv6 handling; prefix 'test-' for isolated test traffic
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req);
+    return req.headers['x-test-rate-limit'] === 'true' ? `test-${ip}` : ip;
+  },
   message: { message: 'Too many verification attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
