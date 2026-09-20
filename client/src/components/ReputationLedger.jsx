@@ -1,5 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config/api';
+import { Search, ChevronLeft, ChevronRight, Award, Trophy } from 'lucide-react';
+
+// Leading partner ranks
+const TRUST_RANKS = {
+  1: { label: '#1 Top Partner', bg: 'var(--primary-500)', color: '#FFFFFF' },
+  2: { label: '#2 Partner', bg: 'var(--accent-amber)', color: '#FFFFFF' },
+  3: { label: '#3 Partner', bg: 'var(--border-strong)', color: 'var(--text-primary)' },
+};
+
+function RankBadge({ rank }) {
+  if (rank <= 3) {
+    const r = TRUST_RANKS[rank];
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+        background: r.bg, color: r.color, fontWeight: 700,
+        padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-full)', fontSize: '0.72rem',
+      }}>
+        <Award size={12} /> {r.label}
+      </span>
+    );
+  }
+  return (
+    <span style={{ color: 'var(--text-tertiary)', fontWeight: 700, fontSize: '0.85rem', paddingLeft: '0.3rem', fontFamily: 'var(--font-mono)' }}>
+      #{rank}
+    </span>
+  );
+}
 
 export default function ReputationLedger() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,19 +39,19 @@ export default function ReputationLedger() {
   const limit = 10;
 
   useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
     const fetchLedger = async () => {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('token');
       try {
         const res = await fetch(`${API_BASE_URL}/api/admin/network-ledger?page=${page}&limit=${limit}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Error: ${res.status} ${res.statusText}`);
         const data = await res.json();
         setLedger(data.docs || []);
         setTotalPages(data.pages || 1);
@@ -33,38 +61,8 @@ export default function ReputationLedger() {
         setLoading(false);
       }
     };
-
     fetchLedger();
   }, [page]);
-
-  const renderRankBadge = (rank) => {
-    if (rank === 1) {
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)' }}>
-          🥇 1st
-        </span>
-      );
-    }
-    if (rank === 2) {
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)', color: 'white', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(148, 163, 184, 0.3)' }}>
-          🥈 2nd
-        </span>
-      );
-    }
-    if (rank === 3) {
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', fontWeight: 800, padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.75rem', boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)' }}>
-          🥉 3rd
-        </span>
-      );
-    }
-    return (
-      <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.85rem', paddingLeft: '0.35rem' }}>
-        #{rank}
-      </span>
-    );
-  };
 
   const filteredLedger = ledger.filter(entry => {
     if (!searchQuery) return true;
@@ -76,85 +74,189 @@ export default function ReputationLedger() {
     );
   });
 
+  // Top-3 podium (only on page 1, no active search)
+  const showPodium = page === 1 && !searchQuery && ledger.length >= 3;
+  const podiumEntries = showPodium ? ledger.slice(0, 3) : [];
+  const tableEntries = showPodium ? filteredLedger.slice(3) : filteredLedger;
+
   return (
-    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
-      {/* Search Header */}
-      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', background: 'var(--bg-secondary)' }}>
-        <div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
-            Network Reputation Leaderboard
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '0.15rem' }}>
-            System-wide organization trust ratings and quality track record
-          </p>
+    <div className="glass-panel animate-fade-up" style={{ overflow: 'hidden', padding: 0 }}>
+      {/* Header row */}
+      <div style={{
+        padding: '1.25rem 1.5rem',
+        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '1rem',
+        flexWrap: 'wrap',
+        background: 'var(--bg-surface-subtle)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-500)'
+          }}>
+            <Award size={18} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Partner Trust Directory
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0.15rem 0 0 0' }}>
+              System-wide community trust ratings and verified distribution records
+            </p>
+          </div>
         </div>
-        <div style={{ minWidth: '240px', maxWidth: '320px', width: '100%' }}>
-          <input 
+
+        <div style={{ position: 'relative', minWidth: '220px', maxWidth: '300px', width: '100%' }}>
+          <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <input
             type="text"
             className="form-control"
-            placeholder="🔍 Search organization..."
+            placeholder="Search by name, role or email…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}
+            style={{ paddingLeft: '2.2rem', padding: '0.45rem 0.85rem 0.45rem 2.2rem', fontSize: '0.84rem' }}
           />
         </div>
       </div>
 
+      {/* Loading state: skeleton */}
       {loading && (
-        <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <p>Loading leaderboard statistics...</p>
+        <div style={{ padding: '1.5rem' }}>
+          <div className="stats-grid" style={{ marginBottom: '1.25rem' }}>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="skeleton skeleton-stat" style={{ height: '110px' }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton skeleton-text" style={{ height: '38px' }} />
+            ))}
+          </div>
         </div>
       )}
 
-      {error && (
-        <div className="alert alert-danger" style={{ margin: '1.5rem' }}>
-          {error}
+      {/* Error state */}
+      {error && <div className="alert alert-danger" style={{ margin: '1.5rem' }}>{error}</div>}
+
+      {/* Top-3 Community Partners */}
+      {!loading && !error && showPodium && (
+        <div style={{
+          padding: '1.5rem',
+          borderBottom: '1px solid var(--border-subtle)',
+          background: 'var(--bg-surface-subtle)',
+        }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-tertiary)', marginBottom: '0.85rem' }}>
+            Leading Community Partners
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+          }}>
+            {podiumEntries.map((entry, i) => {
+              const rank = i + 1;
+              const r = TRUST_RANKS[rank];
+              const score = entry.reputationScore;
+              const scoreColor = score >= 60 ? 'var(--primary-600)' : score >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)';
+
+              return (
+                <div
+                  key={entry._id || i}
+                  className="glass-panel animate-fade-up"
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: 'var(--shadow-xs)',
+                    transition: 'var(--transition-base)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                    <RankBadge rank={rank} />
+                    <span className={`chip ${entry.role === 'donor' ? 'chip-green' : 'chip-cyan'}`} style={{ fontSize: '0.68rem', textTransform: 'capitalize' }}>
+                      {entry.role === 'donor' ? 'Food Donor' : 'Soup Kitchen'}
+                    </span>
+                  </div>
+                  <div style={{
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                    lineHeight: 1.3
+                  }}>
+                    {entry.name}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Trust Score:</span>
+                    <span style={{
+                      fontSize: '1.2rem',
+                      fontWeight: 800,
+                      color: scoreColor,
+                      fontFamily: "'JetBrains Mono', monospace"
+                    }}>
+                      {score} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>/ 100</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
+      {/* Main table */}
       {!loading && !error && (
         <div style={{ overflowX: 'auto' }}>
           <table className="custom-table">
             <thead>
               <tr>
-                <th style={{ width: '80px' }}>Rank</th>
-                <th>Organization Name</th>
+                <th style={{ width: '100px' }}>Rank</th>
+                <th>Organisation Name</th>
                 <th>Role</th>
                 <th style={{ textAlign: 'right' }}>Reputation Score</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLedger.length === 0 ? (
+              {(showPodium ? tableEntries : filteredLedger).length === 0 ? (
                 <tr>
-                  <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    🔍 No matching organizations found.
+                  <td colSpan="4" style={{ padding: '3.5rem 1rem' }}>
+                    <div className="empty-state" style={{ padding: '1rem' }}>
+                      <div className="empty-state-icon"><Search size={22} /></div>
+                      <p className="empty-state-title">No Matching Organisations</p>
+                      <p className="empty-state-desc">Try searching with a different name, role, or keyword.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                filteredLedger.map((entry, index) => {
-                  const rank = (page - 1) * limit + index + 1;
+                (showPodium ? tableEntries : filteredLedger).map((entry, index) => {
+                  const rank = showPodium
+                    ? (page - 1) * limit + index + 4   // start after top 3
+                    : (page - 1) * limit + index + 1;
+                  const score = entry.reputationScore;
+                  const scoreColor = score >= 60 ? 'var(--primary-500)' : score >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)';
                   return (
                     <tr key={entry._id || index}>
-                      <td>
-                        {renderRankBadge(rank)}
-                      </td>
+                      <td><RankBadge rank={rank} /></td>
                       <td>
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{entry.name}</span>
-                        {entry.email && <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{entry.email}</span>}
+                        {entry.email && <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>{entry.email}</span>}
                       </td>
                       <td>
-                        <span className={`status-badge ${entry.role === 'donor' ? 'status-pending' : 'status-approved'}`} style={{ fontSize: '0.68rem' }}>
+                        <span className={`chip ${entry.role === 'donor' ? 'chip-green' : 'chip-cyan'}`} style={{ fontSize: '0.7rem' }}>
                           {entry.role === 'donor' ? 'Donor' : 'Soup Kitchen'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <span style={{ 
-                          fontFamily: 'monospace', 
-                          fontWeight: 800, 
-                          fontSize: '1.05rem',
-                          color: entry.reputationScore >= 60 ? '#10b981' : entry.reputationScore >= 40 ? '#f59e0b' : '#ef4444' 
-                        }}>
-                          {entry.reputationScore} <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)' }}>pts</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.05rem', color: scoreColor }}>
+                          {score} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>pts</span>
                         </span>
                       </td>
                     </tr>
@@ -166,26 +268,33 @@ export default function ReputationLedger() {
         </div>
       )}
 
-      {/* Pagination Controls */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-        <button 
-          className="btn btn-secondary" 
+      {/* Pagination */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.9rem 1.5rem',
+        borderTop: '1px solid var(--border-subtle)',
+        background: 'var(--bg-surface-subtle)'
+      }}>
+        <button
+          className="btn btn-secondary btn-sm"
           disabled={page === 1}
           onClick={() => setPage(p => Math.max(1, p - 1))}
-          style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}
         >
-          Previous
+          <ChevronLeft size={14} /> Previous
         </button>
-        <span style={{ color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
-          Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+          Page <strong style={{ color: 'var(--text-primary)' }}>{page}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalPages}</strong>
         </span>
-        <button 
-          className="btn btn-secondary" 
+        <button
+          className="btn btn-secondary btn-sm"
           disabled={page >= totalPages}
           onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}
         >
-          Next
+          Next <ChevronRight size={14} />
         </button>
       </div>
     </div>

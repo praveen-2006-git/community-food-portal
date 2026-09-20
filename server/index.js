@@ -14,6 +14,7 @@ const kitchenRoutes = require('./routes/kitchen');
 const statsRoutes = require('./routes/stats');
 const reservationRoutes = require('./routes/reservations');
 const issueReportRoutes = require('./routes/issueReports');
+const notificationRoutes = require('./routes/notifications');
 const { authenticateJWT, authorizeRoles } = require('./middleware/auth');
 const { startAutoExpireJob } = require('./utils/cron');
 
@@ -126,14 +127,14 @@ app.use(customMongoSanitize);
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: process.env.NODE_ENV === 'production' ? 50 : 10000,
   skip: (req) => process.env.NODE_ENV === 'test',
   message: { message: 'Too many login attempts from this IP, please try again after 15 minutes.' }
 });
 
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 25,
+  max: process.env.NODE_ENV === 'production' ? 25 : 5000,
   skip: (req) => process.env.NODE_ENV === 'test',
   message: { message: 'Too many accounts created from this IP, please try again after 15 minutes.' }
 });
@@ -150,6 +151,7 @@ app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/issue-reports', issueReportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Protected Test Routes to verify Middleware
 app.get('/api/test/any', authenticateJWT, (req, res) => {

@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Trash2, Edit3, UtensilsCrossed, HeartHandshake, Leaf, ShieldCheck, Clock, Calendar, MapPin, Thermometer, CheckCircle2, AlertTriangle, X, Search } from 'lucide-react';
 import LeafletMap from '../components/LeafletMap';
+import CustodyRibbon from '../components/CustodyRibbon';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { CategoryChip, StorageChip } from '../utils/categoryIcons';
 import { API_BASE_URL } from '../config/api';
 
 export default function DonorDashboard({ user }) {
   const [ingredients, setIngredients] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -11,18 +18,20 @@ export default function DonorDashboard({ user }) {
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   // Current Editing Ingredient
   const [currentIngredient, setCurrentIngredient] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState('Vegetables');
   const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('');
+  const [unit, setUnit] = useState('kg');
   const [expiryDate, setExpiryDate] = useState('');
   const [pickupDeadline, setPickupDeadline] = useState('');
-  const [storageType, setStorageType] = useState('');
+  const [storageType, setStorageType] = useState('Ambient');
   const [lat, setLat] = useState(user?.location?.lat || 11.5034);
   const [lng, setLng] = useState(user?.location?.lng || 77.2444);
   const [donorDeclaration, setDonorDeclaration] = useState(false);
@@ -78,7 +87,7 @@ export default function DonorDashboard({ user }) {
     setSuccess('');
     const code = enteredCodes[resId];
     if (!code) {
-      setError('Please enter the pickup code.');
+      setError('Please enter the 6-digit pickup OTP provided by the collector.');
       return;
     }
     try {
@@ -93,7 +102,7 @@ export default function DonorDashboard({ user }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Verification failed.');
       
-      setSuccess('Pickup code verified successfully! Please tick the declaration below.');
+      setSuccess('Pickup OTP verified successfully! Please tick the confirmation checkbox to complete the handover.');
       fetchReservations();
     } catch (err) {
       setError(err.message);
@@ -104,7 +113,7 @@ export default function DonorDashboard({ user }) {
     setError('');
     setSuccess('');
     if (!confirmedChecks[resId]) {
-      setError('You must tick the confirmation checkbox first.');
+      setError('You must confirm the handover checkbox first.');
       return;
     }
     try {
@@ -119,9 +128,10 @@ export default function DonorDashboard({ user }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update status.');
 
-      setSuccess('Ingredient successfully marked as picked up.');
+      setSuccess('Food handover recorded successfully. Custody logged in ledger.');
       fetchReservations();
       fetchMyIngredients();
+      fetchStats();
     } catch (err) {
       setError(err.message);
     }
@@ -132,6 +142,18 @@ export default function DonorDashboard({ user }) {
     fetchStats();
     fetchReservations();
   }, []);
+
+  // Escape key closes modals
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        if (showAddModal) setShowAddModal(false);
+        if (showEditModal) setShowEditModal(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showAddModal, showEditModal]);
 
   const resetForm = () => {
     setName('');
@@ -180,7 +202,7 @@ export default function DonorDashboard({ user }) {
 
       if (!res.ok) throw new Error(data.message || 'Failed to create listing.');
 
-      setSuccess('Ingredient listing created successfully!');
+      setSuccess('Surplus ingredient listed successfully! Awaiting admin quality validation.');
       setShowAddModal(false);
       fetchMyIngredients();
       fetchStats();
@@ -197,7 +219,6 @@ export default function DonorDashboard({ user }) {
     setCategory(ing.category);
     setQuantity(ing.quantity);
     setUnit(ing.unit);
-    // Format dates to YYYY-MM-DD
     setExpiryDate(new Date(ing.expiryDate).toISOString().split('T')[0]);
     setPickupDeadline(new Date(ing.pickupDeadline).toISOString().split('T')[0]);
     setStorageType(ing.storageType);
@@ -233,7 +254,7 @@ export default function DonorDashboard({ user }) {
 
       if (!res.ok) throw new Error(data.message || 'Failed to update listing.');
 
-      setSuccess('Ingredient listing updated successfully!');
+      setSuccess('Surplus listing updated successfully.');
       setShowEditModal(false);
       fetchMyIngredients();
       fetchStats();
@@ -242,13 +263,18 @@ export default function DonorDashboard({ user }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this listing?')) return;
+  const handleDelete = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     setError('');
     setSuccess('');
+    setDeleteLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ingredients/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/${deleteConfirmId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -256,16 +282,19 @@ export default function DonorDashboard({ user }) {
 
       if (!res.ok) throw new Error(data.message || 'Failed to delete listing.');
 
-      setSuccess('Listing deleted successfully!');
+      setSuccess('Listing removed successfully.');
+      setDeleteConfirmId(null);
       fetchMyIngredients();
       fetchStats();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
-  // Helper to format date
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString(undefined, { 
       year: 'numeric', 
       month: 'short', 
@@ -273,59 +302,124 @@ export default function DonorDashboard({ user }) {
     });
   };
 
+  const getUrgency = (dateStr) => {
+    if (!dateStr) return null;
+    const diffHours = (new Date(dateStr) - new Date()) / (1000 * 60 * 60);
+    if (diffHours < 0) return { label: 'Expired', className: 'urgency-critical' };
+    if (diffHours < 24) return { label: `Expires in ${Math.max(1, Math.round(diffHours))}h`, className: 'urgency-critical' };
+    const diffDays = Math.round(diffHours / 24);
+    if (diffDays <= 3) return { label: `Expires in ${diffDays}d`, className: 'urgency-warning' };
+    return { label: `${diffDays}d left`, className: 'urgency-safe' };
+  };
+
+  const pendingPickupsCount = reservations.filter(r => ['claimed', 'pickup_scheduled'].includes(r.deliveryStatus)).length;
+
   return (
     <div className="main-content">
-      <div className="dashboard-header">
+      {/* Workspace Header */}
+      <div className="workspace-header animate-fade-up">
         <div>
-          <h1 className="dashboard-title">Donor Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Welcome back, {user?.name}</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+            <span className="chip chip-green" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+              ● Verified Food Donor
+            </span>
+          </div>
+          <h1 className="dashboard-title">Food Donor Operations</h1>
+          <p className="dashboard-subtitle" style={{ maxWidth: '600px' }}>
+            Manage surplus inventory, coordinate kitchen collections, and confirm verified handovers to local soup kitchens.
+          </p>
         </div>
-        <button 
-          className="btn btn-primary" 
-          onClick={handleOpenAddModal}
-          disabled={stats && stats.isActive === false}
-          style={stats && stats.isActive === false ? { background: '#475569', borderColor: '#475569', cursor: 'not-allowed' } : {}}
-        >
-          + Upload Ingredient
-        </button>
+        <div>
+          <button 
+            className="btn btn-primary btn-lg" 
+            onClick={handleOpenAddModal}
+            disabled={stats && stats.isActive === false}
+          >
+            <Plus size={18} />
+            <span>Post Surplus Batch</span>
+          </button>
+        </div>
       </div>
 
-      {/* Reputation Status Banners */}
+      {/* Action Banner for Pending Pickups */}
+      {pendingPickupsCount > 0 && (
+        <div className="alert animate-fade-up" style={{ background: 'var(--accent-amber-bg)', border: '1px solid var(--accent-amber-border)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Clock size={18} style={{ flexShrink: 0, color: 'var(--accent-amber)' }} />
+            <span><strong>Action Required:</strong> You have {pendingPickupsCount} reserved batch{pendingPickupsCount > 1 ? 'es' : ''} awaiting OTP verification and physical handover.</span>
+          </div>
+          <a href="#pickup-queue" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Jump to Pickup Station
+          </a>
+        </div>
+      )}
+
+      {/* Account Alerts */}
       {stats && stats.isActive === false && (
-        <div className="alert alert-danger" style={{ background: '#ef4444', color: 'white', fontWeight: 600, marginBottom: '1.5rem' }}>
-          ⚠️ Your account has been deactivated due to low reputation. You cannot create new listings. Please contact admin for review.
+        <div className="alert alert-danger">
+          <AlertTriangle size={18} />
+          <span><strong>Account Suspended:</strong> Your donor account has been deactivated due to low reputation or quality infractions. Please contact the administrator.</span>
         </div>
       )}
       {stats && stats.isActive !== false && stats.reputationScore >= 40 && stats.reputationScore <= 60 && (
-        <div className="alert" style={{ background: '#eab308', color: 'black', fontWeight: 600, marginBottom: '1.5rem' }}>
-          ⚠️ Your reputation is low ({stats.reputationScore} pts). Further issues may deactivate your account.
+        <div className="alert" style={{ background: 'var(--accent-amber-bg)', border: '1px solid var(--accent-amber-border)', color: '#B45309' }}>
+          <AlertTriangle size={18} />
+          <span><strong>Low Reputation Advisory:</strong> Your current trust score is {stats.reputationScore}/100. Please ensure all donated items strictly comply with storage and expiry standards.</span>
         </div>
       )}
 
-      {/* Stats Row */}
-      {stats && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">Total Ingredients Donated</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value">{stats.totalIngredients}</span>
-              <span style={{ fontSize: '1.4rem' }}>🌾</span>
+      {/* Community Activity & Impact Overview */}
+      {!stats ? (
+        <div className="metrics-strip animate-fade-up-delay-1">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton skeleton-stat" />
+          ))}
+        </div>
+      ) : (
+        <div className="metrics-strip animate-fade-up-delay-1">
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+              <UtensilsCrossed size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Active Surplus Batches</div>
+              <div className="metric-value">{stats.totalIngredients}</div>
             </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-label">Requests Fulfilled</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value" style={{ color: '#10b981' }}>{stats.totalFulfilled}</span>
-              <span style={{ fontSize: '1.4rem' }}>🍲</span>
+
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
+              <CheckCircle2 size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Fulfilled Distributions</div>
+              <div className="metric-value" style={{ color: 'var(--accent-blue)' }}>
+                {stats.totalFulfilled}
+              </div>
             </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-label">Reputation Score</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value" style={{ color: stats.reputationScore >= 60 ? '#10b981' : stats.reputationScore >= 40 ? '#f59e0b' : '#ef4444' }}>
-                {stats.reputationScore} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-secondary)' }}>pts</span>
-              </span>
-              <span style={{ fontSize: '1.4rem' }}>⭐</span>
+
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-warning)', color: 'var(--accent-amber)' }}>
+              <Clock size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Active Reservations</div>
+              <div className="metric-value" style={{ color: 'var(--accent-amber)' }}>
+                {reservations.filter(r => r.deliveryStatus !== 'completed' && r.deliveryStatus !== 'cancelled').length}
+              </div>
+            </div>
+          </div>
+
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: stats.reputationScore >= 60 ? 'var(--surface-active)' : 'var(--surface-warning)', color: stats.reputationScore >= 60 ? 'var(--primary-500)' : 'var(--accent-amber)' }}>
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Community Trust Score</div>
+              <div className="metric-value" style={{ color: stats.reputationScore >= 60 ? 'var(--primary-500)' : stats.reputationScore >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)' }}>
+                {stats.reputationScore} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ 100</span>
+              </div>
             </div>
           </div>
         </div>
@@ -334,94 +428,235 @@ export default function DonorDashboard({ user }) {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      {loading && <p style={{ color: 'var(--text-secondary)' }}>Loading your food listings...</p>}
-
-      {!loading && ingredients.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📦</div>
-          <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem', fontSize: '1.2rem' }}>No Active Food Listings</h3>
-          <p style={{ maxWidth: '400px', margin: '0 auto', fontSize: '0.9rem' }}>You have not uploaded any surplus ingredients yet. List your surplus food to help local soup kitchens.</p>
-          <button className="btn btn-primary" style={{ marginTop: '1.25rem' }} onClick={handleOpenAddModal}>
-            + Upload Your First Ingredient
-          </button>
-        </div>
-      ) : (
-        <div className="listings-grid">
-          {ingredients.map((ing) => (
-            <div key={ing._id} className="ingredient-card">
-              <div className="card-header">
-                <div>
-                  <h3 className="card-title">{ing.name}</h3>
-                  <div className="card-category">{ing.category}</div>
-                </div>
-                <span className={`status-badge status-${ing.status}`}>
-                  {ing.status}
-                </span>
-              </div>
-              <div className="card-body">
-                <div className="info-item">
-                  <span className="info-label">Quantity:</span>
-                  <span className="info-value" style={{ color: 'var(--accent-color)', fontWeight: 700 }}>{ing.quantity} {ing.unit}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Storage Type:</span>
-                  <span className="info-value">{ing.storageType}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Expiry Date:</span>
-                  <span className="info-value">{formatDate(ing.expiryDate)}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Pickup Deadline:</span>
-                  <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(ing.pickupDeadline)}</span>
-                </div>
-                <div className="info-item" style={{ marginTop: '0.2rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
-                  <span className="info-label">Location:</span>
-                  <span className="info-value" style={{ fontSize: '0.78rem' }}>
-                    {ing.location.lat.toFixed(4)}, {ing.location.lng.toFixed(4)}
-                  </span>
-                </div>
-              </div>
-              <div className="card-footer" style={{ flexDirection: 'row' }}>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ flex: 1, padding: '0.45rem' }}
-                  onClick={() => handleOpenEditModal(ing)}
-                >
-                  Edit
-                </button>
-                <button 
-                  className="btn btn-danger" 
-                  style={{ flex: 1, padding: '0.45rem' }}
-                  onClick={() => handleDelete(ing._id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pending Pickups / Verification section */}
-      <div style={{ marginTop: '3.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+      {/* Active Listings Section */}
+      <div className="animate-fade-up" style={{ marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
-              Pending Food Pickups & Verification
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Your Surplus Food Batches</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '0.15rem' }}>Currently active, pending, and reserved food batches</p>
+          </div>
+          <span className="status-badge" style={{ fontSize: '0.75rem' }}>
+            {ingredients.length} Total Batches
+          </span>
+        </div>
+
+        {/* Filter and Search Toolbar */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`chip ${statusFilter === 'all' ? 'chip-green' : 'chip-neutral'}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              All Batches ({ingredients.length})
+            </button>
+            <button
+              type="button"
+              className={`chip ${statusFilter === 'available' ? 'chip-green' : 'chip-neutral'}`}
+              onClick={() => setStatusFilter('available')}
+            >
+              Available ({ingredients.filter(i => i.status === 'available').length})
+            </button>
+            <button
+              type="button"
+              className={`chip ${statusFilter === 'pending' ? 'chip-amber' : 'chip-neutral'}`}
+              onClick={() => setStatusFilter('pending')}
+            >
+              Pending Review ({ingredients.filter(i => i.status === 'pending').length})
+            </button>
+            <button
+              type="button"
+              className={`chip ${statusFilter === 'claimed' ? 'chip-cyan' : 'chip-neutral'}`}
+              onClick={() => setStatusFilter('claimed')}
+            >
+              Reserved ({ingredients.filter(i => ['claimed', 'pickup_scheduled'].includes(i.status)).length})
+            </button>
+          </div>
+
+          <div style={{ position: 'relative', minWidth: '200px', maxWidth: '280px', width: '100%' }}>
+            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search your batches…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.1rem', fontSize: '0.82rem', height: '34px' }}
+            />
+          </div>
+        </div>
+
+        {loading && (
+          <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+            {[...Array(4)].map((_, i) => <div key={i} className="skeleton skeleton-card" />)}
+          </div>
+        )}
+
+        {!loading && ingredients.length === 0 ? (
+          <div className="glass-panel empty-state">
+            <div className="empty-state-icon"><UtensilsCrossed size={24} /></div>
+            <p className="empty-state-title">No Active Surplus Batches</p>
+            <p className="empty-state-desc">
+              You haven't listed any food surplus yet. Upload ingredients from your kitchen, bakery, or store to connect with nearby hunger-relief centers.
+            </p>
+            <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal} style={{ marginTop: '0.5rem' }}>
+              <Plus size={15} />
+              <span>Post Your First Batch</span>
+            </button>
+          </div>
+        ) : !loading && ingredients.length > 0 && (() => {
+          const filtered = ingredients.filter(ing => {
+            let matchStatus = true;
+            if (statusFilter === 'available') matchStatus = ing.status === 'available';
+            else if (statusFilter === 'pending') matchStatus = ing.status === 'pending';
+            else if (statusFilter === 'claimed') matchStatus = ['claimed', 'pickup_scheduled'].includes(ing.status);
+            const matchSearch = !searchQuery || 
+              ing.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              ing.category?.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchStatus && matchSearch;
+          });
+
+          if (filtered.length === 0) {
+            return (
+              <div className="glass-panel empty-state" style={{ padding: '2rem 1rem' }}>
+                <p className="empty-state-title">No matching batches</p>
+                <p className="empty-state-desc">Try clearing your search query or status filter.</p>
+                <button className="btn btn-secondary btn-sm" style={{ marginTop: '0.5rem' }} onClick={() => { setStatusFilter('all'); setSearchQuery(''); }}>
+                  Reset Filters
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="listings-grid">
+              {filtered.map((ing) => {
+                const urg = getUrgency(ing.expiryDate);
+                const cardAccentClass = urg?.className === 'urgency-critical' ? 'card-urgent'
+                  : urg?.className === 'urgency-warning' ? 'card-warning'
+                  : ing.status === 'pending' ? 'card-pending'
+                  : ing.status === 'available' ? 'card-available'
+                  : 'card-claimed';
+                return (
+                <div key={ing._id} className={`ingredient-card ${cardAccentClass}`}>
+                  <div className="card-header" style={{ paddingTop: '1.15rem' }}>
+                    <div>
+                      <h3 className="card-title">{ing.name}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                        <CategoryChip category={ing.category} />
+                        {urg ? <span className={`urgency-badge ${urg.className}`}>{urg.label}</span> : null}
+                      </div>
+                    </div>
+                    <span className={`status-badge status-${ing.status}`}>
+                      {ing.status}
+                    </span>
+                  </div>
+
+                <div className="card-body">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <div className="quantity-capsule">
+                      <span className="quantity-number">{ing.quantity}</span>
+                      <span className="quantity-unit">{ing.unit}</span>
+                    </div>
+                    <StorageChip condition={ing.storageType} />
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Expiry Date:</span>
+                    <span className="info-value" style={{ color: 'var(--accent-rose)' }}>{formatDate(ing.expiryDate)}</span>
+                  </div>
+
+                  {/* Visual Shelf-Life Decay Meter */}
+                  {(() => {
+                    const diffHours = (new Date(ing.expiryDate) - new Date()) / (1000 * 60 * 60);
+                    const pct = Math.max(8, Math.min(100, (diffHours / 72) * 100));
+                    const fillClass = diffHours < 24 ? 'shelf-life-critical' : diffHours < 48 ? 'shelf-life-warning' : 'shelf-life-safe';
+                    return (
+                      <div className="shelf-life-meter" title={`Shelf life remaining: ~${Math.max(0, Math.round(diffHours))}h`}>
+                        <div className={`shelf-life-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    );
+                  })()}
+
+                  <div className="info-item" style={{ marginTop: '0.2rem' }}>
+                    <span className="info-label">Pickup Deadline:</span>
+                    <span className="info-value">{formatDate(ing.pickupDeadline)}</span>
+                  </div>
+                  <div className="info-item" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="info-label">Dispatch Point:</span>
+                    <a
+                      href={`https://www.google.com/maps?q=${ing.location.lat},${ing.location.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="info-value"
+                      title={`Facility Coordinates: ${ing.location.lat.toFixed(4)}, ${ing.location.lng.toFixed(4)}`}
+                      style={{ fontSize: '0.78rem', color: 'var(--primary-600)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}
+                    >
+                      <MapPin size={12} />
+                      <span>Facility Dispatch Pin</span>
+                    </a>
+                  </div>
+                </div>
+
+                <div className="card-footer" style={{ display: 'flex', gap: '0.45rem' }}>
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                    onClick={() => handleOpenEditModal(ing)}
+                  >
+                    <Edit3 size={13} />
+                    <span>Edit</span>
+                  </button>
+                  <Link
+                    to="/map"
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+                    title="View on routing map"
+                  >
+                    <MapPin size={13} color="var(--primary-600)" />
+                  </Link>
+                  <button 
+                    className="btn btn-danger btn-sm" 
+                    style={{ padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => handleDelete(ing._id)}
+                    title="Delete batch"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          </div>
+        );
+      })()}
+      </div>
+
+      {/* Pending Pickups & Verified Handover Section */}
+      <div id="pickup-queue" className="attention-station animate-fade-up animate-fade-up-delay-1">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+              <span className="chip chip-green" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                ● Pickup &amp; Handover Station
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Live Pickup &amp; Custody Verification
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Verify collector OTP codes upon arrival and confirm handovers
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '0.2rem' }}>
+              Verify collector 6-digit OTP codes and confirm physical transfer of reserved surplus food.
             </p>
           </div>
-          <span className="status-badge" style={{ fontSize: '0.8rem' }}>
-            {reservations.length} Active Reservations
+          <span className="status-badge status-pickup_scheduled" style={{ fontSize: '0.78rem' }}>
+            {reservations.length} Pending Handover{reservations.length === 1 ? '' : 's'}
           </span>
         </div>
 
         {reservations.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <p>No active reservations are currently pending pickup for your ingredients.</p>
+          <div className="glass-panel empty-state">
+            <div className="empty-state-icon"><Clock size={24} /></div>
+            <p className="empty-state-title">No Active Reservations</p>
+            <p className="empty-state-desc">No soup kitchen reservations currently pending pickup.</p>
           </div>
         ) : (
           <div className="listings-grid">
@@ -432,103 +667,96 @@ export default function DonorDashboard({ user }) {
               const isChecked = !!confirmedChecks[res._id];
 
               return (
-                <div key={res._id} className="ingredient-card" style={{ border: isConfirmed ? '1px solid #10b981' : '1px solid var(--border-color)', height: 'fit-content' }}>
+                <div key={res._id} className="ingredient-card card-claimed" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
                   <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 className="card-title">{ing?.name || 'Unknown Ingredient'}</h3>
-                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.72rem' }}>
+                      <h3 className="card-title">{ing?.name || 'Surplus Ingredient'}</h3>
+                      <span className={`status-badge status-${res.deliveryStatus}`}>
                         {res.deliveryStatus.replace('_', ' ')}
                       </span>
                     </div>
-                    <div className="card-category" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
-                      <span>{ing?.category || 'N/A'}</span>
-                      <span style={{ fontSize: '0.8rem', color: isConfirmed ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
-                        {isConfirmed ? '✓ Code Verified' : '⏳ Awaiting Verification'}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.78rem' }}>
+                      <span style={{ color: 'var(--text-tertiary)' }}>{ing?.category || 'General'}</span>
+                      <span style={{ color: isConfirmed ? 'var(--accent-green)' : 'var(--accent-amber)', fontWeight: 700 }}>
+                        {isConfirmed ? '✓ OTP Validated' : '⏳ Awaiting Code'}
                       </span>
                     </div>
                   </div>
+
                   <div className="card-body">
                     <div className="info-item">
-                      <span className="info-label">Reserved Quantity:</span>
-                      <span className="info-value" style={{ color: 'var(--accent-color)', fontWeight: 700 }}>
+                      <span className="info-label">Claimed Quantity:</span>
+                      <span className="info-value" style={{ color: 'var(--primary-400)', fontWeight: 700 }}>
                         {res.reservedQuantity} {ing?.unit}
                       </span>
                     </div>
                     <div className="info-item">
-                      <span className="info-label">Pickup Deadline:</span>
-                      <span className="info-value" style={{ color: '#fda4af' }}>{formatDate(res.expiresAt)}</span>
+                      <span className="info-label">Receiving Kitchen:</span>
+                      <span className="info-value">{req?.kitchenRef?.name || 'Local Kitchen'}</span>
                     </div>
 
-                    {res.deliveryStatus === 'claimed' && (
-                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.6rem', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.82rem', textAlign: 'center' }}>
-                        Awaiting kitchen to schedule pickup
-                      </div>
-                    )}
+                    {/* Timeline Ribbon */}
+                    <CustodyRibbon status={ing?.status} deliveryStatus={res.deliveryStatus} />
 
-                    {res.deliveryStatus === 'pickup_scheduled' && !isConfirmed && (
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.9rem' }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Enter Collector's 6-Digit OTP</label>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    {/* OTP Entry Verification Form */}
+                    {['claimed', 'pickup_scheduled'].includes(res.deliveryStatus) && !isConfirmed && (
+                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-surface-subtle)', padding: '0.9rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                        <label className="form-label" style={{ fontSize: '0.72rem' }}>Enter Driver 6-Digit Pickup OTP</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
                           <input 
-                            type="text" 
-                            maxLength="6"
-                            placeholder="6-digit code" 
+                            type="text"
+                            maxLength={6}
+                            placeholder="e.g. 839201"
                             className="form-control"
-                            style={{ flex: 1, padding: '0.45rem 0.65rem', fontSize: '0.95rem', letterSpacing: '2px', textAlign: 'center', fontWeight: 700 }}
                             value={enteredCodes[res._id] || ''}
                             onChange={(e) => setEnteredCodes({ ...enteredCodes, [res._id]: e.target.value })}
+                            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '2px', fontSize: '1rem', textAlign: 'center', padding: '0.45rem' }}
                           />
                           <button 
-                            className="btn btn-primary"
-                            style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+                            className="btn btn-primary btn-sm"
                             onClick={() => handleVerifyPickup(res._id)}
                           >
-                            Verify OTP
+                            Verify
                           </button>
                         </div>
                       </div>
                     )}
 
+                    {/* Handover Completion Confirmation */}
                     {res.deliveryStatus === 'pickup_scheduled' && isConfirmed && (
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', background: 'rgba(16, 185, 129, 0.08)', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'var(--surface-active)', padding: '0.6rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(30, 122, 74, 0.25)' }}>
                           <input 
                             type="checkbox" 
                             id={`confirm-${res._id}`}
                             checked={isChecked}
                             onChange={(e) => setConfirmedChecks({ ...confirmedChecks, [res._id]: e.target.checked })}
-                            style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                            style={{ marginTop: '0.2rem', cursor: 'pointer', accentColor: 'var(--accent-green)' }}
                           />
-                          <label htmlFor={`confirm-${res._id}`} style={{ fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}>
-                            I confirm the physical handover of <strong>{res.reservedQuantity} {ing?.unit}</strong> to the collector.
+                          <label htmlFor={`confirm-${res._id}`} style={{ fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', lineHeight: 1.4 }}>
+                            I confirm physical handover of <strong>{res.reservedQuantity} {ing?.unit}</strong> to the verified collector.
                           </label>
                         </div>
                         <button 
-                          className="btn btn-primary"
-                          style={{ width: '100%', padding: '0.5rem' }}
+                          className="btn btn-primary btn-sm"
+                          style={{ width: '100%' }}
                           disabled={!isChecked}
                           onClick={() => handleMarkPickedUp(res._id)}
                         >
-                          Confirm Handover & Complete Pickup
+                          Complete Handover
                         </button>
                       </div>
                     )}
 
                     {res.deliveryStatus === 'handed_over' && (
-                      <div style={{ marginTop: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.6rem', borderRadius: '8px', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
-                        ✓ Handed Over (Awaiting Kitchen Receipt)
+                      <div style={{ marginTop: '0.5rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.82rem', textAlign: 'center' }}>
+                        ✓ Handed Over to Driver
                       </div>
                     )}
 
                     {res.deliveryStatus === 'completed' && (
-                      <div style={{ marginTop: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.6rem', borderRadius: '8px', color: '#10b981', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center' }}>
-                        ✓ Completed Successfully
-                      </div>
-                    )}
-
-                    {res.deliveryStatus === 'cancelled' && (
-                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.6rem', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>
-                        Reservation Cancelled
+                      <div style={{ marginTop: '0.5rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.82rem', textAlign: 'center' }}>
+                        ✓ Delivery Fulfilled Successfully
                       </div>
                     )}
                   </div>
@@ -539,50 +767,52 @@ export default function DonorDashboard({ user }) {
         )}
       </div>
 
-      {/* Add Modal */}
+      {/* Add Listing Modal */}
       {showAddModal && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="modal-title">Upload Surplus Ingredient</h2>
-              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowAddModal(false)}>✕</button>
+              <h2 className="modal-title">Upload Surplus Ingredient Batch</h2>
+              <button className="btn btn-outline btn-sm" style={{ minWidth: '32px', padding: '0.25rem' }} onClick={() => setShowAddModal(false)}>
+                <X size={16} />
+              </button>
             </div>
             <form onSubmit={handleAddSubmit}>
               <div className="modal-body">
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Ingredient Name</label>
+                    <label className="form-label">Ingredient Title</label>
                     <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fresh Tomatoes" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Category</label>
+                    <label className="form-label">Food Category</label>
                     <select className="form-control" value={category} onChange={e => setCategory(e.target.value)}>
                       <option value="Vegetables">Vegetables</option>
                       <option value="Fruits">Fruits</option>
-                      <option value="Bakery">Bakery</option>
-                      <option value="Dairy">Dairy</option>
-                      <option value="Grains">Grains</option>
-                      <option value="Meat">Meat</option>
+                      <option value="Bakery">Bakery & Breads</option>
+                      <option value="Dairy">Dairy Products</option>
+                      <option value="Grains">Rice & Grains</option>
+                      <option value="Meat">Cooked Meat</option>
                       <option value="Canned Goods">Canned Goods</option>
-                      <option value="Spices">Spices</option>
+                      <option value="Spices">Spices & Condiments</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Quantity</label>
-                    <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="10" />
+                    <label className="form-label">Available Quantity</label>
+                    <input type="number" min="1" step="1" className="form-control" required value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="e.g. 25" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Unit</label>
+                    <label className="form-label">Measurement Unit</label>
                     <input type="text" className="form-control" required value={unit} onChange={e => setUnit(e.target.value)} placeholder="kg, liters, loaves" />
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Expiry Date</label>
+                    <label className="form-label">Safe Expiry Date</label>
                     <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} />
                   </div>
                   <div className="form-group">
@@ -592,67 +822,69 @@ export default function DonorDashboard({ user }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Storage Type</label>
+                  <label className="form-label">Required Storage Condition</label>
                   <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
                     <option value="Ambient">Ambient (Room Temperature)</option>
-                    <option value="Chilled">Chilled (Refrigerated)</option>
-                    <option value="Frozen">Frozen</option>
+                    <option value="Chilled">Chilled (Refrigerated 4°C)</option>
+                    <option value="Frozen">Frozen (-18°C)</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Pickup Location (Click map or type coords)</label>
-                  <div className="map-container" style={{ height: '200px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
+                  <label className="form-label">Pickup Location Pin</label>
+                  <div style={{ height: '180px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid var(--border-default)', marginBottom: '0.4rem' }}>
+                    <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Pickup Coordinates" />
                   </div>
-                  <div className="form-row" style={{ marginTop: '0.5rem' }}>
+                  <div className="form-row">
                     <div>
-                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Latitude</label>
+                      <label className="form-label" style={{ fontSize: '0.7rem' }}>Latitude</label>
                       <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Longitude</label>
+                      <label className="form-label" style={{ fontSize: '0.7rem' }}>Longitude</label>
                       <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
                     </div>
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                <div style={{ background: 'var(--bg-surface-subtle)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                     <input 
                       type="checkbox" 
                       required 
                       checked={donorDeclaration} 
                       onChange={e => setDonorDeclaration(e.target.checked)} 
-                      style={{ marginTop: '0.2rem', cursor: 'pointer' }}
+                      style={{ marginTop: '0.2rem', cursor: 'pointer', accentColor: '#10B981' }}
                     />
-                    <span>I declare this surplus food is intact, not expired, safely stored, uncontaminated, and accurately weighed.</span>
+                    <span>I declare this surplus food is hygienically packaged, unadulterated, accurately weighed, and safe for consumption.</span>
                   </label>
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Submit Listing</button>
+                <button type="submit" className="btn btn-primary">Publish Listing</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Listing Modal */}
       {showEditModal && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="modal-title">Edit Food Listing</h2>
-              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowEditModal(false)}>✕</button>
+              <h2 className="modal-title">Edit Surplus Batch</h2>
+              <button className="btn btn-outline btn-sm" style={{ minWidth: '32px', padding: '0.25rem' }} onClick={() => setShowEditModal(false)}>
+                <X size={16} />
+              </button>
             </div>
             <form onSubmit={handleEditSubmit}>
               <div className="modal-body">
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Ingredient Name</label>
+                    <label className="form-label">Ingredient Title</label>
                     <input type="text" className="form-control" required value={name} onChange={e => setName(e.target.value)} />
                   </div>
                   <div className="form-group">
@@ -683,7 +915,7 @@ export default function DonorDashboard({ user }) {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Expiry Date</label>
+                    <label className="form-label">Safe Expiry Date</label>
                     <input type="date" min={new Date().toISOString().split('T')[0]} className="form-control" required value={expiryDate} onChange={e => setExpiryDate(e.target.value)} disabled={user?.role === 'donor'} />
                   </div>
                   <div className="form-group">
@@ -693,7 +925,7 @@ export default function DonorDashboard({ user }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Storage Type</label>
+                  <label className="form-label">Storage Condition</label>
                   <select className="form-control" value={storageType} onChange={e => setStorageType(e.target.value)}>
                     <option value="Ambient">Ambient</option>
                     <option value="Chilled">Chilled</option>
@@ -701,21 +933,17 @@ export default function DonorDashboard({ user }) {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Pickup Location (Click map or type coords)</label>
-                  <div className="map-container" style={{ height: '200px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <LeafletMap lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} markerLabel="Ingredient Pickup Location" />
-                  </div>
-                  <div className="form-row" style={{ marginTop: '0.5rem' }}>
-                    <div>
-                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Latitude</label>
-                      <input type="number" step="0.000001" className="form-control" required value={lat} onChange={e => setLat(parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div>
-                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Longitude</label>
-                      <input type="number" step="0.000001" className="form-control" required value={lng} onChange={e => setLng(parseFloat(e.target.value) || 0)} />
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.75rem', background: 'var(--bg-surface-subtle)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <input 
+                    type="checkbox" 
+                    id="edit-donor-decl"
+                    checked={donorDeclaration}
+                    onChange={(e) => setDonorDeclaration(e.target.checked)}
+                    style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }}
+                  />
+                  <label htmlFor="edit-donor-decl" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer', margin: 0 }}>
+                    I confirm this batch meets food safety quality standards.
+                  </label>
                 </div>
               </div>
 
@@ -727,6 +955,18 @@ export default function DonorDashboard({ user }) {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deleteConfirmId)}
+        title="Delete Surplus Batch?"
+        message="Are you sure you want to permanently remove this surplus ingredient batch from the distribution network? This action cannot be undone."
+        confirmLabel="Delete Batch"
+        confirmVariant="danger"
+        loading={deleteLoading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !deleteLoading && setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

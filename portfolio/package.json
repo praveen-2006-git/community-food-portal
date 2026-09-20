@@ -1,0 +1,26 @@
+{
+  "name": "praveen-mern-portfolio",
+  "version": "1.0.0",
+  "description": "Production-ready MERN stack portfolio for Praveen M — Full Stack Developer",
+  "scripts": {
+    "install:all": "cd client && npm install && cd ../server && npm install",
+    "dev": "concurrently \"cd client && npm run dev\" \"cd server && npm run dev\"",
+    "build": "cd client && npm run build",
+    "test": "cd server && npm test",
+    "audit": "bash deployment/lighthouse-check.sh"
+  },
+  "keywords": [
+    "mern",
+    "portfolio",
+    "full-stack",
+    "react",
+    "node",
+    "express",
+    "mongodb"
+  ],
+  "author": "Praveen M <praveen.cs23@bitsathy.ac.in>",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

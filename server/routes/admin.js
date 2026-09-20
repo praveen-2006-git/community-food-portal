@@ -6,9 +6,17 @@ const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
 
-// All routes require user to be authenticated and have the 'admin' role
+// All routes require user to be authenticated
 router.use(authenticateJWT);
-router.use(authorizeRoles('admin'));
+
+// The network ledger is viewable by all authenticated community members (donors, kitchens, admin).
+// All other administrative operations require 'admin' role.
+router.use((req, res, next) => {
+  if (req.path === '/network-ledger') {
+    return next();
+  }
+  return authorizeRoles('admin')(req, res, next);
+});
 
 // GET /api/admin/ingredients/pending - List all ingredients with status = pending
 router.get('/ingredients/pending', async (req, res) => {

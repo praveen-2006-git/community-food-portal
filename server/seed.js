@@ -66,7 +66,7 @@ const seedData = async () => {
         email: 'donor1@portal.com',
         passwordHash,
         role: 'donor',
-        location: { lat: 11.5050, lng: 77.2450 },
+        location: { lat: 11.5160, lng: 77.2340 },
         reputationScore: 85,
         venueCategory: 'SUPERMARKET',
         contactPerson: 'Alice Donor',

@@ -106,7 +106,8 @@ async function runTests() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${donorToken}`
+          'Authorization': `Bearer ${donorToken}`,
+          'x-test-rate-limit': 'true'
         },
         body: JSON.stringify({ enteredCode: '123456' })
       });

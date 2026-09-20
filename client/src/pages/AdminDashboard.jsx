@@ -1,20 +1,50 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import LeafletMap from '../components/LeafletMap';
 import ReputationLedger from '../components/ReputationLedger';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { API_BASE_URL } from '../config/api';
+import {
+  Wheat, ChefHat, Users, ClipboardList, ShieldAlert, UserX,
+  Trophy, CheckCircle2, XCircle, RotateCcw, X, Compass
+} from 'lucide-react';
 
 export default function AdminDashboard({ user }) {
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'issues', 'deactivated', 'ledger'
+  const [activeTab, setActiveTab] = useState('pending');
   const [pendingIngredients, setPendingIngredients] = useState([]);
   const [selectedIngredient, setSelectedIngredient] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [issueLoading, setIssueLoading] = useState(false);
+  const [deactivatedLoading, setDeactivatedLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Checklist state for approval modal
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [categoryValid, setCategoryValid] = useState(false);
   const [dataReasonable, setDataReasonable] = useState(false);
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('Exceeds safe hold time (>48h)');
+  const [rejectNotes, setRejectNotes] = useState('');
+
+  // Confirmation dialog modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Confirm',
+    confirmVariant: 'danger',
+    onConfirm: () => {}
+  });
+
+  const REJECTION_REASONS = [
+    'Exceeds safe hold time (>48h)',
+    'Cold chain storage compromised',
+    'Damaged / unsealed packaging',
+    'Incomplete allergen declaration',
+    'Quantity or weight discrepancy',
+    'Inaccessible pickup location'
+  ];
 
   const token = localStorage.getItem('token');
   const [stats, setStats] = useState(null);
@@ -23,56 +53,41 @@ export default function AdminDashboard({ user }) {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/stats/admin`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_BASE_URL}/api/stats/admin`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setStats(data);
-    } catch (err) {
-      console.error('Error fetching admin stats:', err);
-    }
+    } catch (err) { console.error('Error fetching admin stats:', err); }
   };
 
   const fetchIssueReports = async () => {
+    setIssueLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/issue-reports`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_BASE_URL}/api/issue-reports`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setIssueReports(data);
-    } catch (err) {
-      console.error('Error fetching issue reports:', err);
-    }
+    } catch (err) { console.error('Error fetching issue reports:', err); }
+    finally { setIssueLoading(false); }
   };
 
   const fetchDeactivatedDonors = async () => {
+    setDeactivatedLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/donors/deactivated`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_BASE_URL}/api/admin/donors/deactivated`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setDeactivatedDonors(data);
-    } catch (err) {
-      console.error('Error fetching deactivated donors:', err);
-    }
+    } catch (err) { console.error('Error fetching deactivated donors:', err); }
+    finally { setDeactivatedLoading(false); }
   };
 
   const fetchPending = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/ingredients/pending`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_BASE_URL}/api/admin/ingredients/pending`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to fetch pending ingredients.');
-      
       setPendingIngredients(data);
-      if (data.length > 0) {
-        setSelectedIngredient(data[0]);
-      } else {
-        setSelectedIngredient(null);
-      }
+      setSelectedIngredient(data.length > 0 ? data[0] : null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -87,6 +102,17 @@ export default function AdminDashboard({ user }) {
     fetchDeactivatedDonors();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowApproveModal(false);
+        setShowRejectModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleOpenApproveModal = () => {
     setCategoryValid(false);
     setDataReasonable(false);
@@ -98,21 +124,15 @@ export default function AdminDashboard({ user }) {
     e.preventDefault();
     setError('');
     setSuccess('');
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/ingredients/${selectedIngredient._id}/approve`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({})
       });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || 'Failed to approve ingredient.');
-
-      setSuccess(`Approved "${selectedIngredient.name}" successfully! Quality report logged.`);
+      setSuccess(`Approved "${selectedIngredient.name}" successfully. Quality report logged.`);
       setShowApproveModal(false);
       fetchPending();
       fetchStats();
@@ -121,24 +141,28 @@ export default function AdminDashboard({ user }) {
     }
   };
 
-  const handleReject = async () => {
+  const handleOpenRejectModal = () => {
     if (!selectedIngredient) return;
-    const confirmMsg = `Are you sure you want to reject "${selectedIngredient.name}"?\nThis will deduct 5 points from the donor's reputation score.`;
-    if (!window.confirm(confirmMsg)) return;
+    setRejectReason(REJECTION_REASONS[0]);
+    setRejectNotes('');
+    setShowRejectModal(true);
+  };
 
+  const handleConfirmReject = async (e) => {
+    e.preventDefault();
+    if (!selectedIngredient) return;
     setError('');
     setSuccess('');
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/ingredients/${selectedIngredient._id}/reject`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ reason: rejectReason, notes: rejectNotes })
       });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || 'Failed to reject ingredient.');
-
-      setSuccess(`Rejected "${selectedIngredient.name}". Donor reputation score is now ${data.donorReputationScore} (-5 points).`);
+      setSuccess(`Rejected "${selectedIngredient.name}" (${rejectReason}). Donor score now ${data.donorReputationScore} pts (-5).`);
+      setShowRejectModal(false);
       fetchPending();
       fetchStats();
       fetchDeactivatedDonors();
@@ -153,16 +177,12 @@ export default function AdminDashboard({ user }) {
     try {
       const res = await fetch(`${API_BASE_URL}/api/issue-reports/${reportId}/resolve`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to resolve issue report.');
-
-      setSuccess(`Issue report successfully resolved as ${status}!`);
+      setSuccess(`Issue resolved as "${status}"`);
       fetchIssueReports();
       fetchStats();
       fetchDeactivatedDonors();
@@ -171,8 +191,21 @@ export default function AdminDashboard({ user }) {
     }
   };
 
-  const handleReactivateDonor = async (donorId) => {
-    if (!window.confirm('Are you sure you want to reactivate this donor? This will reset their reputation score to 60.')) return;
+  const promptUpholdIssue = (reportId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Uphold Quality Infraction?',
+      message: 'Are you sure you want to uphold this complaint? The food donor will lose 15 reputation points and risk suspension.',
+      confirmLabel: 'Uphold Infraction (−15 Rep)',
+      confirmVariant: 'danger',
+      onConfirm: () => {
+        handleResolveIssue(reportId, 'upheld');
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const executeReactivateDonor = async (donorId) => {
     setError('');
     setSuccess('');
     try {
@@ -182,8 +215,7 @@ export default function AdminDashboard({ user }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to reactivate donor.');
-
-      setSuccess('Donor reactivated successfully and reputation score reset to 60.');
+      setSuccess('Donor reactivated. Reputation score reset to 60.');
       fetchDeactivatedDonors();
       fetchStats();
     } catch (err) {
@@ -191,368 +223,316 @@ export default function AdminDashboard({ user }) {
     }
   };
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString(undefined, { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+  const promptReactivateDonor = (donorId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reactivate Food Donor?',
+      message: 'This will restore donor listing permissions and reset their community reputation score to 60/100.',
+      confirmLabel: 'Reactivate Donor',
+      confirmVariant: 'warning',
+      onConfirm: () => {
+        executeReactivateDonor(donorId);
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
     });
   };
 
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+  const TABS = [
+    { key: 'pending', label: 'Pending Approvals', icon: <ClipboardList size={15} />, badge: pendingIngredients.length, badgeColor: 'var(--accent-amber)' },
+    { key: 'issues', label: 'Quality Issues', icon: <ShieldAlert size={15} />, badge: issueReports.length, badgeColor: 'var(--accent-rose)' },
+    { key: 'deactivated', label: 'Deactivated Donors', icon: <UserX size={15} />, badge: deactivatedDonors.length, badgeColor: 'var(--accent-rose)' },
+    { key: 'ledger', label: 'Reputation Leaderboard', icon: <Trophy size={15} />, badge: 0, badgeColor: '' },
+  ];
+
   return (
     <div className="main-content">
-      <div className="dashboard-header">
+      {/* Workspace Header */}
+      <div className="workspace-header animate-fade-up" style={{ padding: '1.15rem 1.5rem', marginBottom: '1.25rem' }}>
         <div>
-          <h1 className="dashboard-title">Admin Review & Governance</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>System governance, quality controls, and network audit log</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+            <span className="chip chip-green" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+              ● Community Food Governance
+            </span>
+            <span className="chip chip-neutral" style={{ fontSize: '0.7rem' }}>
+              {pendingIngredients.length} Items Awaiting Review
+            </span>
+          </div>
+          <h1 className="dashboard-title" style={{ fontSize: '1.65rem' }}>Food Safety &amp; Inventory Review</h1>
+          <p className="dashboard-subtitle" style={{ maxWidth: '600px', fontSize: '0.86rem', marginTop: '0.2rem' }}>
+            Verify incoming surplus batches, adjudicate kitchen quality feedback, and uphold community food safety standards.
+          </p>
+        </div>
+        <div>
+          <Link to="/map" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none', padding: '0.5rem 0.9rem' }}>
+            <Compass size={16} color="var(--primary-500)" />
+            <span>Open Routing Map</span>
+          </Link>
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Network Activity & Impact Overview */}
       {stats && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">Global Donations</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value">{stats.totalIngredients}</span>
-              <span style={{ fontSize: '1.4rem' }}>🌾</span>
+        <div className="metrics-strip animate-fade-up-delay-1" style={{ marginBottom: '1.25rem' }}>
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+              <Wheat size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Network Surplus Batches</div>
+              <div className="metric-value">{stats.totalIngredients}</div>
             </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-label">Fulfilled Deliveries</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value" style={{ color: '#10b981' }}>{stats.totalFulfilled}</span>
-              <span style={{ fontSize: '1.4rem' }}>🍲</span>
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+              <ChefHat size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Fulfilled Deliveries</div>
+              <div className="metric-value" style={{ color: 'var(--primary-500)' }}>{stats.totalFulfilled}</div>
             </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-label">Active Food Donors</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value" style={{ color: '#38bdf8' }}>{stats.activeDonors}</span>
-              <span style={{ fontSize: '1.4rem' }}>👥</span>
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-cyan)' }}>
+              <Users size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Verified Donors</div>
+              <div className="metric-value" style={{ color: 'var(--accent-cyan)' }}>{stats.activeDonors}</div>
             </div>
           </div>
-          <div className="stat-card">
-            <span className="stat-label">Pending Reviews</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-              <span className="stat-value" style={{ color: pendingIngredients.length > 0 ? '#f59e0b' : '#10b981' }}>
-                {pendingIngredients.length}
-              </span>
-              <span style={{ fontSize: '1.4rem' }}>🔍</span>
+          <div className="metric-cell">
+            <div className="metric-icon" style={{ background: pendingIngredients.length > 0 ? 'var(--surface-warning)' : 'var(--surface-active)', color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>
+              <ClipboardList size={22} />
+            </div>
+            <div>
+              <div className="metric-label">Pending Review Queue</div>
+              <div className="metric-value" style={{ color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>{pendingIngredients.length}</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Segmented Tab Navigation */}
-      <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '0.3rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.25rem' }}>
-        <button 
-          className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-          style={{ 
-            flex: '1 1 auto',
-            minWidth: '160px',
-            background: activeTab === 'pending' ? 'var(--bg-tertiary)' : 'transparent', 
-            border: 'none', 
-            color: activeTab === 'pending' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            fontWeight: 700, 
-            cursor: 'pointer', 
-            padding: '0.65rem 1rem',
-            borderRadius: '9px',
-            fontSize: '0.86rem',
-            boxShadow: activeTab === 'pending' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.18s ease'
-          }}
-          onClick={() => setActiveTab('pending')}
-        >
-          <span>Pending Approvals</span>
-          {pendingIngredients.length > 0 && (
-            <span style={{ background: '#f59e0b', color: 'black', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '9999px' }}>
-              {pendingIngredients.length}
-            </span>
-          )}
-        </button>
-
-        <button 
-          className={`tab-btn ${activeTab === 'issues' ? 'active' : ''}`}
-          style={{ 
-            flex: '1 1 auto',
-            minWidth: '160px',
-            background: activeTab === 'issues' ? 'var(--bg-tertiary)' : 'transparent', 
-            border: 'none', 
-            color: activeTab === 'issues' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            fontWeight: 700, 
-            cursor: 'pointer', 
-            padding: '0.65rem 1rem',
-            borderRadius: '9px',
-            fontSize: '0.86rem',
-            boxShadow: activeTab === 'issues' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.18s ease'
-          }}
-          onClick={() => setActiveTab('issues')}
-        >
-          <span>Quality Issues</span>
-          {issueReports.length > 0 && (
-            <span style={{ background: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '9999px' }}>
-              {issueReports.length}
-            </span>
-          )}
-        </button>
-
-        <button 
-          className={`tab-btn ${activeTab === 'deactivated' ? 'active' : ''}`}
-          style={{ 
-            flex: '1 1 auto',
-            minWidth: '160px',
-            background: activeTab === 'deactivated' ? 'var(--bg-tertiary)' : 'transparent', 
-            border: 'none', 
-            color: activeTab === 'deactivated' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            fontWeight: 700, 
-            cursor: 'pointer', 
-            padding: '0.65rem 1rem',
-            borderRadius: '9px',
-            fontSize: '0.86rem',
-            boxShadow: activeTab === 'deactivated' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.18s ease'
-          }}
-          onClick={() => setActiveTab('deactivated')}
-        >
-          <span>Deactivated Donors</span>
-          {deactivatedDonors.length > 0 && (
-            <span style={{ background: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '9999px' }}>
-              {deactivatedDonors.length}
-            </span>
-          )}
-        </button>
-
-        <button 
-          className={`tab-btn ${activeTab === 'ledger' ? 'active' : ''}`}
-          style={{ 
-            flex: '1 1 auto',
-            minWidth: '160px',
-            background: activeTab === 'ledger' ? 'var(--bg-tertiary)' : 'transparent', 
-            border: 'none', 
-            color: activeTab === 'ledger' ? 'var(--text-primary)' : 'var(--text-secondary)', 
-            fontWeight: 700, 
-            cursor: 'pointer', 
-            padding: '0.65rem 1rem',
-            borderRadius: '9px',
-            fontSize: '0.86rem',
-            boxShadow: activeTab === 'ledger' ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.18s ease'
-          }}
-          onClick={() => setActiveTab('ledger')}
-        >
-          <span>Reputation Leaderboard</span>
-        </button>
+      <div className="segmented-control animate-fade-up-delay-2" role="tablist" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={activeTab === t.key}
+            className={`segmented-btn ${activeTab === t.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.key)}
+          >
+            {t.icon}
+            <span>{t.label}</span>
+            {t.badge > 0 && (
+              <span className="segmented-count" style={{ background: t.badgeColor, color: 'white' }}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+      {error && <div className="alert alert-danger animate-fade-up-delay-2">{error}</div>}
+      {success && <div className="alert alert-success animate-fade-up-delay-2">{success}</div>}
 
-      {/* Tab 1: Pending Approvals */}
+      {/* ── TAB 1: PENDING APPROVALS ── */}
       {activeTab === 'pending' && (
         loading ? (
-          <p style={{ color: 'var(--text-secondary)' }}>Loading pending reviews...</p>
+          <div className="stats-grid animate-fade-up-delay-3">
+            {[...Array(4)].map((_, i) => <div key={i} className="skeleton skeleton-card" />)}
+          </div>
         ) : pendingIngredients.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🎉</div>
-            <h2 style={{ color: 'var(--text-primary)', fontSize: '1.4rem' }}>Clean Queue!</h2>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.92rem' }}>There are currently no pending surplus food listings awaiting quality review.</p>
+          <div className="empty-state animate-fade-up-delay-3">
+            <CheckCircle2 className="empty-state-icon" style={{ color: 'var(--accent-green)' }} />
+            <h2 className="empty-state-title">Clean Queue!</h2>
+            <p className="empty-state-desc">No surplus listings awaiting quality review.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', minHeight: '60vh' }}>
-            
-            {/* Left panel: List of pending items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '75vh', overflowY: 'auto', paddingRight: '0.35rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                <h3 style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                  Pending Queue ({pendingIngredients.length})
-                </h3>
-              </div>
+          <div className="two-pane-responsive animate-fade-up-delay-3">
+            {/* Left: Queue list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <h3 style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.25rem' }}>
+                Pending Queue ({pendingIngredients.length})
+              </h3>
               {pendingIngredients.map((ing) => (
-                <div 
-                  key={ing._id} 
-                  className="glass-panel" 
-                  style={{ 
-                    padding: '1.15rem 1.25rem', 
+                <div
+                  key={ing._id}
+                  className="glass-panel"
+                  style={{
+                    padding: '1rem 1.15rem',
                     cursor: 'pointer',
-                    border: selectedIngredient?._id === ing._id ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
-                    background: selectedIngredient?._id === ing._id ? 'rgba(16, 185, 129, 0.08)' : 'var(--glass-bg)',
-                    borderRadius: '12px'
+                    border: selectedIngredient?._id === ing._id ? '2px solid var(--primary-500)' : '1px solid var(--border-default)',
+                    background: selectedIngredient?._id === ing._id ? 'var(--surface-active)' : 'var(--bg-surface)',
+                    borderRadius: '12px',
+                    transition: 'all 0.15s'
                   }}
                   onClick={() => setSelectedIngredient(ing)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>{ing.name}</h4>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{ing.name}</h4>
                     <span className="status-badge status-pending" style={{ fontSize: '0.68rem' }}>{ing.category}</span>
                   </div>
-                  <div style={{ marginTop: '0.65rem', fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.81rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                     <p>Donor: <strong style={{ color: 'var(--text-primary)' }}>{ing.donorRef?.name || 'Unknown'}</strong></p>
-                    <p>Quantity: <strong style={{ color: 'var(--accent-color)' }}>{ing.quantity} {ing.unit}</strong></p>
+                    <p>Qty: <strong style={{ color: 'var(--primary-500)' }}>{ing.quantity} {ing.unit}</strong></p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Right panel: Details + Leaflet Map */}
+            {/* Right: Detail + Map (Sticky inspection card with full clearance for action buttons) */}
             {selectedIngredient && (
-              <div className="glass-panel" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '75vh', overflowY: 'auto' }}>
+              <div
+                key={selectedIngredient._id}
+                className="glass-panel"
+                style={{
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.1rem',
+                  position: 'sticky',
+                  top: '78px',
+                  height: 'fit-content',
+                  boxShadow: 'var(--shadow-md)'
+                }}
+              >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                      <h3 style={{ fontSize: '1.45rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
+                      <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                         {selectedIngredient.name}
                       </h3>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '0.2rem' }}>
-                        Category: <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.category}</strong>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+                        Category: <strong style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{selectedIngredient.category}</strong>
                       </p>
                     </div>
-                    <span className="status-badge status-pending">Pending Review</span>
+                    <span className="status-badge status-pending" style={{ flexShrink: 0, marginTop: '2px' }}>
+                      Pending Review
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.86rem' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                      Listing Details
-                    </span>
-                    <p>Quantity: <strong style={{ color: 'var(--accent-color)' }}>{selectedIngredient.quantity} {selectedIngredient.unit}</strong></p>
-                    <p>Storage: <strong>{selectedIngredient.storageType}</strong></p>
-                    <p>Expiry: <strong style={{ color: '#fda4af' }}>{formatDate(selectedIngredient.expiryDate)}</strong></p>
-                    <p>Deadline: <strong>{formatDate(selectedIngredient.pickupDeadline)}</strong></p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', background: 'var(--bg-tertiary)', padding: '0.9rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Listing Details</span>
+                    <p style={{ color: 'var(--text-secondary)' }}>Qty: <strong style={{ color: 'var(--primary-500)' }}>{selectedIngredient.quantity} {selectedIngredient.unit}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Storage: <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.storageType}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Expiry: <strong style={{ color: 'var(--accent-rose)' }}>{formatDate(selectedIngredient.expiryDate)}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Deadline: <strong style={{ color: 'var(--text-primary)' }}>{formatDate(selectedIngredient.pickupDeadline)}</strong></p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.86rem' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                      Donor Information
-                    </span>
-                    <p>Name: <strong>{selectedIngredient.donorRef?.name || 'N/A'}</strong></p>
-                    <p>Email: <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{selectedIngredient.donorRef?.email || 'N/A'}</span></p>
-                    <p>Reputation: <strong style={{ color: '#34d399' }}>⭐ {selectedIngredient.donorRef?.reputationScore ?? 0} pts</strong></p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Donor Information</span>
+                    <p style={{ color: 'var(--text-secondary)' }}>Name: <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.donorRef?.name || 'N/A'}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>{selectedIngredient.donorRef?.email || 'N/A'}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Reputation: <strong style={{ color: 'var(--primary-400)' }}>⭐ {selectedIngredient.donorRef?.reputationScore ?? 0} pts</strong></p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
-                    Pickup Geolocation Verification
+                  <h4 style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.4rem', letterSpacing: '0.5px' }}>
+                    Pickup Location Verification
                   </h4>
-                  <div className="map-container" style={{ height: '200px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <LeafletMap 
-                      lat={selectedIngredient.location.lat} 
-                      lng={selectedIngredient.location.lng} 
-                      readOnly={true} 
-                      markerLabel={`${selectedIngredient.name} Pickup Location`} 
-                    />
+                  <div className="map-container" style={{ height: '165px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                    <LeafletMap lat={selectedIngredient.location.lat} lng={selectedIngredient.location.lng} readOnly={true} markerLabel={`${selectedIngredient.name} Pickup`} />
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: '0.25rem' }}>
                     GPS: {selectedIngredient.location.lat.toFixed(6)}, {selectedIngredient.location.lng.toFixed(6)}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', marginTop: 'auto' }}>
-                  <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReject}>
-                    Reject (-5 Rep)
+                <div style={{ display: 'flex', gap: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.1rem', marginTop: '0.35rem' }}>
+                  <button
+                    className="btn btn-danger"
+                    style={{ flex: 1, padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                    onClick={handleOpenRejectModal}
+                  >
+                    <XCircle size={15} /> Reject (−5 Rep)
                   </button>
-                  <button className="btn btn-primary" style={{ flex: 1.5 }} onClick={handleOpenApproveModal}>
-                    Verify & Approve Listing
+                  <button
+                    className="btn btn-primary"
+                    style={{ flex: 1.5, padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                    onClick={handleOpenApproveModal}
+                  >
+                    <CheckCircle2 size={15} /> Verify &amp; Approve
                   </button>
                 </div>
               </div>
             )}
-
           </div>
         )
       )}
 
-      {/* Tab 2: Quality Issues */}
+      {/* ── TAB 2: QUALITY ISSUES ── */}
       {activeTab === 'issues' && (
-        <div>
+        <div className="animate-fade-up-delay-3">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
-              Reported Food Quality Issues ({issueReports.length})
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Reported Quality Issues ({issueReports.length})
             </h2>
           </div>
 
-          {issueReports.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🛡️</div>
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Active Complaints</h3>
-              <p style={{ fontSize: '0.9rem' }}>No pending food quality issues reported by soup kitchens.</p>
+          {issueLoading ? (
+            <div className="listings-grid">
+              {[...Array(3)].map((_, i) => <div key={i} className="skeleton skeleton-card" />)}
+            </div>
+          ) : issueReports.length === 0 ? (
+            <div className="empty-state">
+              <ShieldAlert className="empty-state-icon" style={{ color: 'var(--accent-green)' }} />
+              <h3 className="empty-state-title">No Active Complaints</h3>
+              <p className="empty-state-desc">No pending food quality issues reported.</p>
             </div>
           ) : (
             <div className="listings-grid">
               {issueReports.map((report) => (
-                <div key={report._id} className="ingredient-card" style={{ border: '1px solid rgba(239, 68, 68, 0.4)', height: 'fit-content' }}>
+                <div key={report._id} className="ingredient-card card-urgent" style={{ borderLeft: '3px solid var(--accent-red)', height: 'fit-content' }}>
                   <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <h3 className="card-title">{report.ingredientRef?.name || 'Unknown Item'}</h3>
-                      <span className="status-badge status-rejected" style={{ fontSize: '0.7rem' }}>
-                        Pending Resolution
-                      </span>
+                      <span className="status-badge status-rejected" style={{ fontSize: '0.68rem' }}>Pending</span>
                     </div>
-                    <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       Reported by: <strong style={{ color: 'var(--text-primary)' }}>{report.reportedBy?.name || 'Soup Kitchen'}</strong>
                     </div>
                   </div>
 
                   <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    <div style={{ background: 'rgba(239, 68, 68, 0.08)', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                      <p style={{ fontWeight: 700, color: '#fca5a5', marginBottom: '0.2rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Reason:</p>
+                    <div style={{ background: 'var(--surface-critical)', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.84rem', border: '1px solid var(--accent-rose-border)' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--accent-rose)', marginBottom: '0.2rem', fontSize: '0.72rem', textTransform: 'uppercase' }}>Reason:</p>
                       <p style={{ color: 'var(--text-primary)' }}>{report.reason}</p>
                     </div>
-
                     {report.proofDescription && (
-                      <div style={{ fontSize: '0.85rem' }}>
-                        <span className="info-label" style={{ display: 'block', marginBottom: '0.15rem' }}>Proof / Reference:</span>
-                        <span className="info-value" style={{ color: 'var(--text-secondary)' }}>{report.proofDescription}</span>
+                      <div style={{ fontSize: '0.84rem' }}>
+                        <span className="info-label" style={{ display: 'block', marginBottom: '0.1rem' }}>Proof / Reference:</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{report.proofDescription}</span>
                       </div>
                     )}
-
-                    <div className="info-item" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem', marginTop: '0.2rem' }}>
-                      <span className="info-label">Reservation Qty:</span>
+                    <div className="info-item" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
+                      <span className="info-label">Reserved Qty:</span>
                       <span className="info-value">{report.reservationRef?.reservedQuantity || 'N/A'}</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Delivery Status:</span>
-                      <span className="info-value" style={{ textTransform: 'capitalize' }}>
-                        {report.reservationRef?.deliveryStatus || 'N/A'}
-                      </span>
+                      <span className="info-value" style={{ textTransform: 'capitalize' }}>{report.reservationRef?.deliveryStatus || 'N/A'}</span>
                     </div>
                   </div>
 
                   <div className="card-footer" style={{ flexDirection: 'row', gap: '0.5rem' }}>
-                    <button 
-                      className="btn btn-secondary" 
-                      style={{ flex: 1, padding: '0.45rem', fontSize: '0.82rem' }} 
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1, padding: '0.45rem', fontSize: '0.82rem' }}
                       onClick={() => handleResolveIssue(report._id, 'dismissed')}
                     >
                       Dismiss
                     </button>
-                    <button 
-                      className="btn btn-danger" 
-                      style={{ flex: 1.5, padding: '0.45rem', fontSize: '0.82rem' }} 
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to Uphold this report? This will deduct 15 reputation points from the donor.')) {
-                          handleResolveIssue(report._id, 'upheld');
-                        }
-                      }}
+                    <button
+                      className="btn btn-danger"
+                      style={{ flex: 1.5, padding: '0.45rem', fontSize: '0.82rem' }}
+                      onClick={() => promptUpholdIssue(report._id)}
                     >
-                      Uphold (-15 Rep)
+                      Uphold (−15 Rep)
                     </button>
                   </div>
                 </div>
@@ -562,25 +542,29 @@ export default function AdminDashboard({ user }) {
         </div>
       )}
 
-      {/* Tab 3: Deactivated Donors */}
+      {/* ── TAB 3: DEACTIVATED DONORS ── */}
       {activeTab === 'deactivated' && (
-        <div>
+        <div className="animate-fade-up-delay-3">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: 'var(--text-primary)' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Deactivated Donors ({deactivatedDonors.length})
             </h2>
           </div>
 
-          {deactivatedDonors.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '3.5rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✨</div>
-              <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>All Donors Active</h3>
-              <p style={{ fontSize: '0.9rem' }}>No food donors are currently suspended or deactivated.</p>
+          {deactivatedLoading ? (
+            <div className="listings-grid">
+              {[...Array(3)].map((_, i) => <div key={i} className="skeleton skeleton-card" />)}
+            </div>
+          ) : deactivatedDonors.length === 0 ? (
+            <div className="empty-state">
+              <Users className="empty-state-icon" style={{ color: 'var(--accent-green)' }} />
+              <h3 className="empty-state-title">All Donors Active</h3>
+              <p className="empty-state-desc">No food donors are currently suspended.</p>
             </div>
           ) : (
             <div className="listings-grid">
               {deactivatedDonors.map((donor) => (
-                <div key={donor._id} className="ingredient-card" style={{ border: '1px solid rgba(239, 68, 68, 0.4)', height: 'fit-content' }}>
+                <div key={donor._id} className="ingredient-card" style={{ border: '1px solid var(--accent-rose-border)', height: 'fit-content' }}>
                   <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <h3 className="card-title">{donor.name}</h3>
@@ -591,20 +575,20 @@ export default function AdminDashboard({ user }) {
                   <div className="card-body">
                     <div className="info-item">
                       <span className="info-label">Reputation Score:</span>
-                      <span className="info-value" style={{ color: '#ef4444', fontWeight: 800 }}>{donor.reputationScore} pts</span>
+                      <span className="info-value" style={{ color: 'var(--accent-rose)', fontWeight: 800 }}>{donor.reputationScore} pts</span>
                     </div>
                     <div className="info-item">
                       <span className="info-label">Account Status:</span>
-                      <span className="info-value" style={{ color: '#ef4444' }}>Suspended</span>
+                      <span className="info-value" style={{ color: 'var(--accent-rose)' }}>Suspended</span>
                     </div>
                   </div>
                   <div className="card-footer">
-                    <button 
-                      className="btn btn-primary" 
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
-                      onClick={() => handleReactivateDonor(donor._id)}
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                      onClick={() => promptReactivateDonor(donor._id)}
                     >
-                      Reactivate Donor (Reset Rep to 60)
+                      <RotateCcw size={14} /> Reactivate Donor (Reset Rep → 60)
                     </button>
                   </div>
                 </div>
@@ -614,65 +598,128 @@ export default function AdminDashboard({ user }) {
         </div>
       )}
 
-      {/* Tab 4: Reputation Leaderboard */}
+      {/* ── TAB 4: REPUTATION LEADERBOARD ── */}
       {activeTab === 'ledger' && (
-        <div>
+        <div className="animate-fade-up-delay-3">
           <ReputationLedger />
         </div>
       )}
 
-      {/* Approval checklist modal */}
+      {/* ── APPROVAL CHECKLIST MODAL ── */}
       {showApproveModal && selectedIngredient && (
         <div className="modal-backdrop">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
               <h2 className="modal-title">Quality Verification Checklist</h2>
-              <button className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowApproveModal(false)}>✕</button>
+              <button type="button" className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowApproveModal(false)}>
+                <X size={16} />
+              </button>
             </div>
-            
             <form onSubmit={handleApproveSubmit}>
               <div className="modal-body">
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                  Verify details for <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.name}</strong> from donor <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.donorRef?.name}</strong> before approving for public routing:
+                <p style={{ fontSize: '0.87rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                  Verify details for <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.name}</strong> from <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.donorRef?.name}</strong> before approving for public routing:
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    <input 
-                      type="checkbox" 
-                      required
-                      checked={categoryValid} 
-                      onChange={e => setCategoryValid(e.target.checked)} 
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                    />
-                    <span>I confirm the food category and storage type are valid</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    <input type="checkbox" required checked={categoryValid} onChange={e => setCategoryValid(e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '1px', flexShrink: 0 }} />
+                    <span>I confirm the food category and storage type are valid and appropriate</span>
                   </label>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                    <input 
-                      type="checkbox" 
-                      required
-                      checked={dataReasonable} 
-                      onChange={e => setDataReasonable(e.target.checked)} 
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                    />
-                    <span>I confirm expiration date, quantity, and location are plausible</span>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    <input type="checkbox" required checked={dataReasonable} onChange={e => setDataReasonable(e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '1px', flexShrink: 0 }} />
+                    <span>I confirm expiry date, quantity, and GPS location are plausible and accurate</span>
                   </label>
                 </div>
               </div>
-
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowApproveModal(false)}>
-                  Cancel
-                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowApproveModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">
-                  Confirm & Approve Listing
+                  <CheckCircle2 size={14} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
+                  Confirm &amp; Approve
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ── REJECTION ADJUDICATION MODAL ── */}
+      {showRejectModal && selectedIngredient && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div className="metric-icon-box" style={{ background: 'var(--surface-critical)', color: 'var(--accent-rose)', width: '32px', height: '32px' }}>
+                  <ShieldAlert size={18} />
+                </div>
+                <div>
+                  <h2 className="modal-title" style={{ fontSize: '1.2rem', margin: 0 }}>Safety Rejection Adjudication</h2>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>Mandatory quality audit action</span>
+                </div>
+              </div>
+              <button type="button" className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem' }} onClick={() => setShowRejectModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleConfirmReject}>
+              <div className="modal-body">
+                <div style={{ background: 'var(--surface-critical)', border: '1px solid var(--accent-rose-border)', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', fontWeight: 600, margin: 0 }}>
+                    ⚠️ Warning: Rejecting <strong>{selectedIngredient.name}</strong> will penalize donor <strong>{selectedIngredient.donorRef?.name || 'organization'}</strong> by <strong>−5 reputation points</strong>.
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Select Non-Compliance Reason</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                    {REJECTION_REASONS.map(reason => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => setRejectReason(reason)}
+                        className={`chip ${rejectReason === reason ? 'chip-rose' : 'chip-neutral'}`}
+                        style={{ cursor: 'pointer', fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700 }}>Additional Admin Notes (Optional)</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    placeholder="Specific visual observations, temperature logs, or packaging defects observed..."
+                    value={rejectNotes}
+                    onChange={(e) => setRejectNotes(e.target.value)}
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <XCircle size={15} /> Confirm Rejection (−5 Rep)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── SHARED CONFIRM DIALOG ── */}
+      <ConfirmDialog
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        confirmVariant={confirmModal.confirmVariant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

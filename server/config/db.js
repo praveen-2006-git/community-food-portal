@@ -2,25 +2,38 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectDB = async () => {
+  let connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/community_food_portal';
   try {
-    const connStr = process.env.MONGODB_URI;
     await mongoose.connect(connStr);
-    console.log(`MongoDB Connected successfully!`);
-
-    // MongoDB transaction capability check on startup
-    const session = await mongoose.startSession();
-    try {
-      session.startTransaction();
-      await session.abortTransaction();
-      console.log(`[DB Startup] MongoDB Transaction capability check: PASSED (transactions supported)`);
-    } catch (txErr) {
-      console.warn(`[DB Startup] MongoDB Transaction capability check: FAILED (transactions not supported). Running transactions might fail on this MongoDB configuration.`);
-    } finally {
-      session.endSession();
+    console.log(`MongoDB Connected successfully! (${connStr.includes('@') ? 'Cloud/Atlas' : 'Local'})`);
+  } catch (primaryErr) {
+    if (connStr !== 'mongodb://127.0.0.1:27017/community_food_portal') {
+      console.warn(`Primary MongoDB URI connection failed (${primaryErr.message}). Retrying with local MongoDB...`);
+      try {
+        connStr = 'mongodb://127.0.0.1:27017/community_food_portal';
+        await mongoose.connect(connStr);
+        console.log(`Connected successfully to fallback local MongoDB!`);
+      } catch (fallbackErr) {
+        console.error(`MongoDB Connection Error: ${fallbackErr}`);
+        process.exit(1);
+      }
+    } else {
+      console.error(`MongoDB Connection Error: ${primaryErr}`);
+      process.exit(1);
     }
-  } catch (error) {
-    console.error(`MongoDB Connection Error: ${error}`);
-    process.exit(1);
+  }
+
+  // MongoDB transaction capability check on startup
+  try {
+    const { checkTransactionSupport } = require('../utils/transactionHelper');
+    const supported = await checkTransactionSupport();
+    if (supported) {
+      console.log(`[DB Startup] MongoDB Transaction capability check: PASSED (Replica set / transactions supported)`);
+    } else {
+      console.log(`[DB Startup] Standalone MongoDB detected: atomic single-doc operations enabled with graceful multi-doc fallback.`);
+    }
+  } catch (err) {
+    console.warn(`[DB Startup] Transaction check note: ${err.message}`);
   }
 };
 

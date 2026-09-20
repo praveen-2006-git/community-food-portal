@@ -37,7 +37,7 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
     }).addTo(map);
     
     if (markerLabel) {
-      marker.bindPopup(markerLabel).openPopup();
+      marker.bindPopup(markerLabel, { autoPan: false }).openPopup();
     }
     markerRef.current = marker;
 
@@ -74,19 +74,22 @@ export default function LeafletMap({ lat, lng, onChange, readOnly = false, marke
     };
   }, []);
 
-  // Update map view and marker position when lat/lng changes from external input
+  // Update map view, marker position, and popup when lat/lng/markerLabel changes from external input
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) return;
     
     const currentLat = lat || 11.5034;
     const currentLng = lng || 77.2444;
 
-    const markerLatLng = markerRef.current.getLatLng();
-    if (markerLatLng.lat !== currentLat || markerLatLng.lng !== currentLng) {
-      markerRef.current.setLatLng([currentLat, currentLng]);
-      mapRef.current.panTo([currentLat, currentLng]);
+    markerRef.current.setLatLng([currentLat, currentLng]);
+    mapRef.current.panTo([currentLat, currentLng]);
+    mapRef.current.invalidateSize();
+
+    if (markerLabel) {
+      markerRef.current.unbindPopup();
+      markerRef.current.bindPopup(markerLabel, { autoPan: false }).openPopup();
     }
-  }, [lat, lng]);
+  }, [lat, lng, markerLabel]);
 
   return (
     <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />

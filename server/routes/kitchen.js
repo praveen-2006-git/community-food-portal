@@ -7,6 +7,7 @@ const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const { hashPickupCode } = require('../utils/security');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
+const { runWithTransaction } = require('../utils/transactionHelper');
 
 // All routes require user to be authenticated and have the 'soup_kitchen' or 'admin' role
 router.use(authenticateJWT);
@@ -126,132 +127,129 @@ router.get('/ingredients', async (req, res) => {
 
 // POST /api/kitchen/ingredients/:id/request - Request specific quantity of an ingredient
 router.post('/ingredients/:id/request', async (req, res) => {
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
-
     const { requestedQuantity, pickupMode, volunteerName } = req.body;
 
     if (requestedQuantity === undefined || !pickupMode) {
-      await session.abortTransaction();
       return res.status(400).json({ message: 'Requested quantity and pickup mode are required.' });
     }
 
     if (requestedQuantity <= 0) {
-      await session.abortTransaction();
       return res.status(400).json({ message: 'Requested quantity must be greater than zero.' });
     }
 
     if (!['self', 'volunteer'].includes(pickupMode)) {
-      await session.abortTransaction();
       return res.status(400).json({ message: 'Pickup mode must be self or volunteer.' });
     }
 
     if (pickupMode === 'volunteer' && !volunteerName) {
-      await session.abortTransaction();
       return res.status(400).json({ message: 'Volunteer name is required when pickup mode is volunteer.' });
     }
 
     const ingredientId = req.params.id;
 
     if (!mongoose.Types.ObjectId.isValid(ingredientId)) {
-      await session.abortTransaction();
       return res.status(400).json({ message: 'Invalid ingredient ID format.' });
     }
 
-    const ingredientObj = await Ingredient.findById(ingredientId).session(session);
-    if (!ingredientObj) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Ingredient not found.' });
-    }
-
-    const donorUser = await User.findById(ingredientObj.donorRef).session(session);
-    if (donorUser && donorUser.isActive === false) {
-      await session.abortTransaction();
-      return res.status(403).json({ message: 'Your request cannot be completed: the donor account is deactivated.' });
-    }
-
-    // Check storage compatibility guard
-    const caps = req.user.storageCapabilities || [];
-    if (caps.length > 0 && !caps.includes(ingredientObj.storageType)) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        error: 'Storage mismatch',
-        message: 'Your registered storage facilities cannot safely store this ingredient.'
-      });
-    }
-
-    // ATOMIC UPDATE to prevent race conditions
-    const updatedIngredient = await Ingredient.findOneAndUpdate(
-      {
-        _id: ingredientId,
-        status: 'available',
-        quantity: { $gte: requestedQuantity }
-      },
-      {
-        $inc: { quantity: -requestedQuantity }
-      },
-      {
-        new: true,
-        session
+    const result = await runWithTransaction(async (session) => {
+      const ingredientObj = await Ingredient.findById(ingredientId).session(session);
+      if (!ingredientObj) {
+        return { status: 404, message: 'Ingredient not found.' };
       }
-    );
 
-    if (!updatedIngredient) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: 'Requested quantity is not available, or the ingredient is no longer active/available.'
+      const donorUser = await User.findById(ingredientObj.donorRef).session(session);
+      if (donorUser && donorUser.isActive === false) {
+        return { status: 403, message: 'Your request cannot be completed: the donor account is deactivated.' };
+      }
+
+      // Check storage compatibility guard
+      const caps = req.user.storageCapabilities || [];
+      if (caps.length > 0 && !caps.includes(ingredientObj.storageType)) {
+        return {
+          status: 400,
+          message: 'Your registered storage facilities cannot safely store this ingredient.',
+          error: 'Storage mismatch'
+        };
+      }
+
+      // ATOMIC UPDATE to prevent race conditions
+      const updateOptions = { returnDocument: 'after' };
+      if (session) updateOptions.session = session;
+
+      const updatedIngredient = await Ingredient.findOneAndUpdate(
+        {
+          _id: ingredientId,
+          status: 'available',
+          quantity: { $gte: requestedQuantity }
+        },
+        {
+          $inc: { quantity: -requestedQuantity }
+        },
+        updateOptions
+      );
+
+      if (!updatedIngredient) {
+        return {
+          status: 400,
+          message: 'Requested quantity is not available, or the ingredient is no longer active/available.'
+        };
+      }
+
+      // Create Request
+      const request = new Request({
+        soupKitchenRef: req.user.id,
+        ingredientRef: ingredientId,
+        requestedQuantity,
+        status: 'claimed',
+        pickupMode,
+        volunteerName: pickupMode === 'volunteer' ? volunteerName : ''
+      });
+      await request.save(session ? { session } : {});
+
+      const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const hashedPickupCode = hashPickupCode(pickupCode);
+      const codeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins in future
+
+      const reservation = new Reservation({
+        requestRef: request._id,
+        reservedQuantity: requestedQuantity,
+        expiresAt: updatedIngredient.pickupDeadline,
+        deliveryStatus: 'claimed',
+        pickupCode: hashedPickupCode,
+        failedAttempts: 0,
+        codeExpiresAt,
+        pickupConfirmedByDonor: false
+      });
+      await reservation.save(session ? { session } : {});
+
+      const responseReservation = reservation.toObject();
+      responseReservation.pickupCode = pickupCode; // Return plaintext code to caller for tests/display
+
+      return {
+        status: 201,
+        body: {
+          message: 'Request created and ingredient reserved successfully.',
+          request,
+          reservation: responseReservation,
+          remainingQuantity: updatedIngredient.quantity,
+          ingredientStatus: updatedIngredient.status
+        }
+      };
+    });
+
+    if (result.status >= 400) {
+      return res.status(result.status).json({
+        message: result.message,
+        ...(result.error ? { error: result.error } : {})
       });
     }
 
-    // Create Request
-    const request = new Request({
-      soupKitchenRef: req.user.id,
-      ingredientRef: ingredientId,
-      requestedQuantity,
-      status: 'claimed',
-      pickupMode,
-      volunteerName: pickupMode === 'volunteer' ? volunteerName : ''
-    });
-    await request.save({ session });
-
-    const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedPickupCode = hashPickupCode(pickupCode);
-    const codeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins in future
-
-    const reservation = new Reservation({
-      requestRef: request._id,
-      reservedQuantity: requestedQuantity,
-      expiresAt: updatedIngredient.pickupDeadline,
-      deliveryStatus: 'claimed',
-      pickupCode: hashedPickupCode,
-      failedAttempts: 0,
-      codeExpiresAt,
-      pickupConfirmedByDonor: false
-    });
-    await reservation.save({ session });
-
-    await session.commitTransaction();
-
-    const responseReservation = reservation.toObject();
-    responseReservation.pickupCode = pickupCode; // Return plaintext code to caller for tests/display
-
-    return res.status(201).json({
-      message: 'Request created and ingredient reserved successfully.',
-      request,
-      reservation: responseReservation,
-      remainingQuantity: updatedIngredient.quantity,
-      ingredientStatus: updatedIngredient.status
-    });
+    return res.status(201).json(result.body);
 
   } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
     console.error('Request ingredient error:', error);
     return res.status(500).json({ message: 'Internal server error during request placement.' });
-  } finally {
-    session.endSession();
   }
 });
 
