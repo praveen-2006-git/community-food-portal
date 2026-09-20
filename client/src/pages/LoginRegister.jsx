@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   UtensilsCrossed,
   Building2,
-  Shield,
   ArrowRight,
   Eye,
   EyeOff,
@@ -280,43 +279,108 @@ export default function LoginRegister({ onLogin }) {
               </button>
             </div>
 
-            {/* Demo Quick-Select Bar — strictly gated behind DEV or explicit build flag, never by URL query param */}
-            {activeTab === 'login' && (import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO === 'true') && (
-              <div className="demo-role-selector">
-                <div className="demo-role-label">
+            {/* Demo Accounts — always visible so anyone (recruiters, judges) can try the app */}
+            {activeTab === 'login' && (
+              <div style={{
+                background: 'var(--bg-surface-subtle)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
                   <Sparkles size={13} color="var(--primary-500)" />
-                  <span>Demo Quick-Fill:</span>
+                  <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Try a Demo Account
+                  </span>
                 </div>
-                <div className="demo-role-pills">
+
+                {/* Donor Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.5rem 0.75rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <UtensilsCrossed size={14} color="var(--accent-green)" style={{ flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>Food Donor</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        donor1@portal.com · password123
+                      </div>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    className={`demo-role-pill ${selectedQuickRole === 'donor' ? 'active' : ''}`}
                     onClick={() => handleQuickFill('donor')}
+                    style={{
+                      flexShrink: 0,
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--accent-green)',
+                      background: selectedQuickRole === 'donor' ? 'var(--accent-green)' : 'transparent',
+                      color: selectedQuickRole === 'donor' ? '#fff' : 'var(--accent-green)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    <UtensilsCrossed size={12} color="var(--accent-green)" />
-                    <span>Donor</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`demo-role-pill ${selectedQuickRole === 'kitchen' ? 'active' : ''}`}
-                    onClick={() => handleQuickFill('kitchen')}
-                  >
-                    <Building2 size={12} color="var(--accent-blue)" />
-                    <span>Kitchen</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`demo-role-pill ${selectedQuickRole === 'admin' ? 'active' : ''}`}
-                    onClick={() => handleQuickFill('admin')}
-                  >
-                    <Shield size={12} color="var(--accent-amber)" />
-                    <span>Admin</span>
+                    {selectedQuickRole === 'donor' ? '✓ Loaded' : 'Use'}
                   </button>
                 </div>
+
+                {/* Kitchen Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.5rem 0.75rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <Building2 size={14} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>Soup Kitchen</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        kitchen1@portal.com · password123
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill('kitchen')}
+                    style={{
+                      flexShrink: 0,
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--accent-blue)',
+                      background: selectedQuickRole === 'kitchen' ? 'var(--accent-blue)' : 'transparent',
+                      color: selectedQuickRole === 'kitchen' ? '#fff' : 'var(--accent-blue)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {selectedQuickRole === 'kitchen' ? '✓ Loaded' : 'Use'}
+                  </button>
+                </div>
+
                 {selectedQuickRole && (
-                  <div style={{ width: '100%', fontSize: '0.74rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem', paddingTop: '0.35rem', borderTop: '1px dashed var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--border-subtle)' }}>
                     <CheckCircle2 size={12} />
-                    <span>Loaded {selectedQuickRole === 'donor' ? 'Food Donor' : selectedQuickRole === 'kitchen' ? 'Soup Kitchen' : 'Admin'} credentials</span>
+                    <span>Credentials auto-filled — click Sign In to enter</span>
                   </div>
                 )}
               </div>
