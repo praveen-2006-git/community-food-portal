@@ -74,15 +74,22 @@ if (process.env.FRONTEND_URL) {
 
 const corsOptions = {
   origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || (typeof origin === 'string' && origin.endsWith('.vercel.app'))) {
-      return callback(null, true);
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+      (typeof origin === 'string' && (origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com')));
+
+    if (isAllowed) {
+      // Must return the exact origin string so Access-Control-Allow-Origin matches the requesting origin (required when credentials: true)
+      return callback(null, origin);
     }
-    return callback(new Error('CORS policy block'), false);
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-test-rate-limit'],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
