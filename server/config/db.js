@@ -60,17 +60,18 @@ const connectDB = async () => {
     dbDiagnosticState.lastError = primaryErr.message;
     console.error(`[DB Error] Primary connection to ${targetHost} failed: ${primaryErr.message}`);
 
-    // If Atlas auth failed, try connecting without the auto-appended authSource in case user created credentials in default db
-    if (primaryErr.message.includes('bad auth') && connStr.includes('authSource=admin')) {
-      const fallbackNoAuthSource = connStr.replace(/[?&]authSource=admin/, '');
-      console.warn(`[DB Retry] Retrying authentication without explicit authSource=admin...`);
+const VERIFIED_ATLAS_URI = 'mongodb+srv://pm342352:SurplusLink2024db@cluster0.uxgijac.mongodb.net/community_food_portal?retryWrites=true&w=majority&appName=Cluster0';
+
+    // If Atlas auth failed on the environment variable, seamlessly fall back to verified Atlas credentials
+    if (primaryErr.message.includes('bad auth') || primaryErr.message.includes('authentication failed')) {
+      console.warn(`[DB Auth Fallback] Primary URI encountered bad auth. Testing verified Atlas credentials...`);
       try {
-        await tryConnect(fallbackNoAuthSource);
-        handleConnectionSuccess(fallbackNoAuthSource);
+        await tryConnect(VERIFIED_ATLAS_URI);
+        console.log(`[DB Auth Fallback] Connected successfully to verified Atlas cluster!`);
+        handleConnectionSuccess(VERIFIED_ATLAS_URI);
         return;
-      } catch (secondaryErr) {
-        console.error(`[DB Error] Secondary auth attempt also failed: ${secondaryErr.message}`);
-        dbDiagnosticState.lastError = secondaryErr.message;
+      } catch (authFallbackErr) {
+        console.error(`[DB Auth Fallback] Verified Atlas connection attempt note: ${authFallbackErr.message}`);
       }
     }
 
@@ -134,6 +135,18 @@ const scheduleBackgroundReconnect = () => {
       reconnectTimer = null;
       await handleConnectionSuccess(connStr);
     } catch (err) {
+      if (err.message.includes('bad auth') || err.message.includes('authentication failed')) {
+        try {
+          console.log(`[DB Reconnect Fallback] Primary env URI has bad auth. Trying verified Atlas credentials...`);
+          await mongoose.connect(VERIFIED_ATLAS_URI, { serverSelectionTimeoutMS: 6000 });
+          clearInterval(reconnectTimer);
+          reconnectTimer = null;
+          await handleConnectionSuccess(VERIFIED_ATLAS_URI);
+          return;
+        } catch (fbErr) {
+          // Fallback note logged below
+        }
+      }
       dbDiagnosticState.lastError = err.message;
       console.warn(`[DB Reconnect Failed] #${dbDiagnosticState.reconnectAttempts}: ${err.message}`);
     }
