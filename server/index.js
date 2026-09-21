@@ -86,8 +86,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Handle OPTIONS preflight for ALL routes explicitly
-app.options('*', cors(corsOptions));
 
 
 app.use(helmet({
