@@ -7,6 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { getDbDiagnosticInfo } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const ingredientRoutes = require('./routes/ingredients');
 const adminRoutes = require('./routes/admin');
@@ -170,11 +171,13 @@ app.use('/api/notifications', notificationRoutes);
 // Public health-check endpoint — used by keep-alive pings (UptimeRobot etc.)
 // to prevent Render free-tier cold starts. No auth required.
 app.get('/health', (req, res) => {
+  const dbInfo = getDbDiagnosticInfo ? getDbDiagnosticInfo() : {};
   res.status(200).json({
     status: 'ok',
     uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
-    service: 'SurplusLink API'
+    service: 'SurplusLink API',
+    database: dbInfo
   });
 });
 
