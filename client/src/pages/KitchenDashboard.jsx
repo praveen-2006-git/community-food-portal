@@ -263,43 +263,54 @@ export default function KitchenDashboard({ user }) {
         </div>
       </div>
 
-      {/* Take 3 Metrics Strip — Single Band with Hairline Dividers */}
-      <div className="metrics-strip animate-fade-up-delay-1" style={{ marginBottom: '1.5rem' }}>
-        <div className="metric-cell">
-          <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--accent-green)' }}>
-            <Leaf size={22} />
+      {/* Telemetry Cards Grid */}
+      <div className="telemetry-grid animate-fade-up-delay-1" style={{ marginBottom: '1.75rem' }}>
+        <div className="telemetry-card">
+          <div className="telemetry-top">
+            <div className="telemetry-icon-well" style={{ background: 'var(--surface-active)', color: 'var(--accent-green)' }}>
+              <Leaf size={20} />
+            </div>
+            <span className="telemetry-trend" style={{ background: 'var(--surface-active)', color: 'var(--primary-600)' }}>15km Radius</span>
           </div>
           <div>
-            <div className="metric-label">Surplus Near You</div>
-            <div className="metric-value">{ingredients.length}</div>
+            <div className="telemetry-val">{ingredients.length}</div>
+            <div className="telemetry-lbl">Surplus Near You</div>
           </div>
         </div>
-        <div className="metric-cell">
-          <div className="metric-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
-            <Truck size={22} />
+
+        <div className="telemetry-card">
+          <div className="telemetry-top">
+            <div className="telemetry-icon-well" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
+              <Truck size={20} />
+            </div>
+            <span className="telemetry-trend" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>Awaiting Collection</span>
           </div>
           <div>
-            <div className="metric-label">Active Reservations</div>
-            <div className="metric-value" style={{ color: 'var(--accent-blue)' }}>{activeReservationsCount}</div>
+            <div className="telemetry-val" style={{ color: 'var(--accent-blue)' }}>{activeReservationsCount}</div>
+            <div className="telemetry-lbl">Active Reservations</div>
           </div>
         </div>
-        <div className="metric-cell">
-          <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--accent-green)' }}>
-            <CheckCircle2 size={22} />
+
+        <div className="telemetry-card">
+          <div className="telemetry-top">
+            <div className="telemetry-icon-well" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+              <CheckCircle2 size={20} />
+            </div>
+            <span className="telemetry-trend" style={{ background: 'var(--surface-active)', color: 'var(--primary-600)' }}>Verified Custody</span>
           </div>
           <div>
-            <div className="metric-label">Completed Pickups</div>
-            <div className="metric-value" style={{ color: 'var(--accent-green)' }}>{completedReservationsCount}</div>
+            <div className="telemetry-val" style={{ color: 'var(--primary-500)' }}>{completedReservationsCount}</div>
+            <div className="telemetry-lbl">Completed Pickups</div>
           </div>
         </div>
       </div>
 
-      {/* Segmented Tab */}
-      <div className="segmented-control animate-fade-up-delay-2" role="tablist" style={{ maxWidth: '520px', marginBottom: '1.5rem' }}>
-        <button role="tab" aria-selected={activeTab === 'available'} className={`segmented-btn ${activeTab === 'available' ? 'active' : ''}`} onClick={() => setActiveTab('available')}>
+      {/* Segmented Tab Navigation */}
+      <div className="segmented-control-modern animate-fade-up-delay-2" role="tablist" style={{ marginBottom: '1.5rem' }}>
+        <button role="tab" aria-selected={activeTab === 'available'} className={`segmented-btn-modern ${activeTab === 'available' ? 'active' : ''}`} onClick={() => setActiveTab('available')}>
           Available Surplus <span className="segmented-count">{ingredients.length}</span>
         </button>
-        <button role="tab" aria-selected={activeTab === 'reservations'} className={`segmented-btn ${activeTab === 'reservations' ? 'active' : ''}`} onClick={() => setActiveTab('reservations')}>
+        <button role="tab" aria-selected={activeTab === 'reservations'} className={`segmented-btn-modern ${activeTab === 'reservations' ? 'active' : ''}`} onClick={() => setActiveTab('reservations')}>
           My Reservations <span className="segmented-count">{reservations.length}</span>
         </button>
       </div>
@@ -420,63 +431,57 @@ export default function KitchenDashboard({ user }) {
               <div className="listings-grid">
                 {filteredIngredients.map((ing) => {
                   const urgency = getUrgency(ing.expiryDate);
+                  const diffHours = (new Date(ing.expiryDate) - new Date()) / (1000 * 60 * 60);
+                  const pct = Math.max(8, Math.min(100, (diffHours / 72) * 100));
+                  const fillClass = diffHours < 24 ? 'expiry-fill-critical' : diffHours < 48 ? 'expiry-fill-warning' : 'expiry-fill-safe';
+
                   return (
-                    <div key={ing._id} className={`ingredient-card ${urgency.className === 'urgency-critical' ? 'card-urgent' : urgency.className === 'urgency-warning' ? 'card-warning' : 'card-available'}`}>
-                      <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', paddingTop: '1.15rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                          <h3 className="card-title" style={{ flex: 1 }}>{ing.name}</h3>
-                          <div className="quantity-capsule">
-                            <span className="quantity-number">{ing.quantity}</span>
-                            <span className="quantity-unit">{ing.unit}</span>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <div key={ing._id} className="modern-food-card">
+                      <div className="modern-food-header">
+                        <div className="food-title-group">
+                          <h3>{ing.name}</h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                             <CategoryChip category={ing.category} />
                             <StorageChip condition={ing.storageType} />
+                            <span className="chip chip-neutral" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <MapPin size={11} color="var(--accent-blue)" /> {ing.distance} km
+                            </span>
                           </div>
-                          <span className="chip chip-neutral" style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <MapPin size={11} color="var(--accent-blue)" /> {ing.distance} km
+                        </div>
+                        <div className="food-quantity-badge">
+                          {ing.quantity} {ing.unit}
+                        </div>
+                      </div>
+
+                      {/* Expiry Timeline countdown box */}
+                      <div className="expiry-timeline-box">
+                        <div className="expiry-timeline-labels">
+                          <span style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>
+                            Expires In
                           </span>
+                          <span className={`urgency-badge ${urgency.className}`}>{urgency.label}</span>
+                        </div>
+                        <div className="expiry-track" title={`Expires: ${formatDate(ing.expiryDate)}`}>
+                          <div className={fillClass} style={{ width: `${pct}%` }} />
                         </div>
                       </div>
 
-                      <div className="card-body">
-                        {/* Shelf life window bar */}
-                        <div style={{ background: 'var(--bg-tertiary)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                            <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase' }}>Expires In</span>
-                            <span className={`urgency-badge ${urgency.className}`}>{urgency.label}</span>
-                          </div>
-                          {(() => {
-                            const diffHours = (new Date(ing.expiryDate) - new Date()) / (1000 * 60 * 60);
-                            const pct = Math.max(8, Math.min(100, (diffHours / 72) * 100));
-                            const fillClass = diffHours < 24 ? 'shelf-life-critical' : diffHours < 48 ? 'shelf-life-warning' : 'shelf-life-safe';
-                            return (
-                              <div className="shelf-life-meter" style={{ height: '4px' }} title={`Expires: ${formatDate(ing.expiryDate)}`}>
-                                <div className={`shelf-life-fill ${fillClass}`} style={{ width: `${pct}%` }} />
-                              </div>
-                            );
-                          })()}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Pickup Deadline:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatDate(ing.pickupDeadline)}</span>
                         </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Pickup Deadline:</span>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatDate(ing.pickupDeadline)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.35rem', marginTop: '0.1rem' }}>
-                            <span>Donor:</span>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ing.donorRef?.name || 'N/A'}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Reputation:</span>
-                            <span style={{ fontWeight: 700, color: 'var(--primary-400)' }}>⭐ {ing.donorRef?.reputationScore ?? 0} pts</span>
-                          </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.35rem', marginTop: '0.1rem' }}>
+                          <span>Donor:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ing.donorRef?.name || 'N/A'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Donor Reputation:</span>
+                          <span style={{ fontWeight: 700, color: 'var(--primary-400)' }}>⭐ {ing.donorRef?.reputationScore ?? 0} pts</span>
                         </div>
                       </div>
 
-                      <div className="card-footer" style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
                         <button className="btn btn-primary" style={{ flex: 1, padding: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }} onClick={() => handleOpenRequestModal(ing)}>
                           <UtensilsCrossed size={14} />
                           <span>Request Batch</span>
@@ -518,43 +523,43 @@ export default function KitchenDashboard({ user }) {
                 const req = res.requestRef;
                 const ing = req?.ingredientRef;
                 return (
-                  <div key={res._id} className="ingredient-card">
-                    <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                        <h3 className="card-title" style={{ flex: 1 }}>{ing?.name || 'Unknown Ingredient'}</h3>
-                        <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.7rem', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
-                          {res.deliveryStatus.replace('_', ' ')}
-                        </span>
+                  <div key={res._id} className="modern-food-card">
+                    <div className="modern-food-header">
+                      <div className="food-title-group">
+                        <h3>{ing?.name || 'Unknown Ingredient'}</h3>
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                          <span className="chip chip-green">
+                            {ing?.category || 'N/A'}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: req?.status === 'fulfilled' ? 'var(--accent-green)' : 'var(--text-secondary)', fontWeight: 600, alignSelf: 'center' }}>
+                            Request: {req?.status}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="chip chip-green">
-                          {ing?.category || 'N/A'}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: req?.status === 'fulfilled' ? 'var(--accent-green)' : 'var(--text-secondary)', fontWeight: 600, alignSelf: 'center' }}>
-                          Request: {req?.status}
-                        </span>
-                      </div>
+                      <span className={`status-badge status-${res.deliveryStatus}`} style={{ fontSize: '0.7rem', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                        {res.deliveryStatus.replace('_', ' ')}
+                      </span>
                     </div>
 
-                    <div className="card-body">
-                      <div className="info-item">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.84rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span className="info-label">Reserved Qty:</span>
-                        <span className="info-value" style={{ color: 'var(--primary-500)', fontWeight: 700 }}>
+                        <span className="food-quantity-badge" style={{ fontSize: '0.95rem', padding: '0.2rem 0.6rem' }}>
                           {res.reservedQuantity} {ing?.unit || ''}
                         </span>
                       </div>
-                      <div className="info-item">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span className="info-label">Pickup Mode:</span>
-                        <span className="info-value" style={{ textTransform: 'capitalize' }}>{req?.pickupMode}</span>
+                        <span className="info-value" style={{ textTransform: 'capitalize', fontWeight: 600 }}>{req?.pickupMode}</span>
                       </div>
                       {req?.pickupMode === 'volunteer' && (
-                        <div className="info-item">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span className="info-label">Volunteer:</span>
-                          <span className="info-value" style={{ color: 'var(--accent-blue)' }}>{req?.volunteerName}</span>
+                          <span className="info-value" style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{req?.volunteerName}</span>
                         </div>
                       )}
                       
-                      <div style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}>
+                      <div style={{ marginTop: '0.5rem', marginBottom: '0.35rem' }}>
                         <CustodyRibbon status={ing?.status} deliveryStatus={res.deliveryStatus} />
                       </div>
 
@@ -563,7 +568,7 @@ export default function KitchenDashboard({ user }) {
                         const codeToShow = activePickupCodes[res._id] || (res.pickupCode?.length === 6 ? res.pickupCode : null);
                         if (codeToShow && ['claimed', 'pickup_scheduled'].includes(res.deliveryStatus)) {
                           return (
-                            <div className="otp-capsule-container" style={{ marginTop: '0.85rem' }}>
+                            <div className="otp-capsule-container" style={{ marginTop: '0.65rem' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                   <Key size={11} /> Pickup OTP
@@ -609,7 +614,7 @@ export default function KitchenDashboard({ user }) {
                         }
                         if (['claimed', 'pickup_scheduled'].includes(res.deliveryStatus)) {
                           return (
-                            <div style={{ marginTop: '0.85rem' }}>
+                            <div style={{ marginTop: '0.65rem' }}>
                               <button
                                 type="button"
                                 className="btn btn-outline"
@@ -625,7 +630,7 @@ export default function KitchenDashboard({ user }) {
                       })()}
                     </div>
 
-                    <div className="card-footer" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
                       {res.deliveryStatus === 'claimed' && (
                         <>
                           <button className="btn btn-primary" style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} onClick={() => handleUpdateStatus(res._id, 'pickup_scheduled')}>

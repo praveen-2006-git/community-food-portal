@@ -176,94 +176,110 @@ export default function LoginRegister({ onLogin }) {
         <div className={`auth-split-grid ${activeTab === 'register' ? 'register-mode' : ''}`}>
           
           {/* Left Side: Authentic Purpose & Capabilities */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.35rem 0.85rem', borderRadius: 'var(--radius-full)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem', background: 'var(--surface-active)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '0.4rem 0.95rem', borderRadius: 'var(--radius-full)', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.12)' }}>
                 <Sprout size={16} color="var(--primary-500)" />
-                <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--primary-600)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   SurplusLink Food Rescue
                 </span>
               </div>
               <div className="hub-live-badge">
                 <span className="hub-live-dot" />
-                <span>Regional Grid Live</span>
+                <span>Regional Logistics Grid Live</span>
               </div>
             </div>
 
             <div>
-              <h1 style={{ fontSize: activeTab === 'register' ? '1.85rem' : '2.45rem', fontWeight: 800, lineHeight: 1.2, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+              <h1 style={{ fontSize: activeTab === 'register' ? '2rem' : '2.65rem', fontWeight: 800, lineHeight: 1.18, color: 'var(--text-primary)', letterSpacing: '-0.035em' }}>
                 Connecting Surplus Food with <span className="brand-gradient-text">Community Kitchens</span>
               </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.96rem', marginTop: '0.85rem', lineHeight: 1.6, maxWidth: '480px' }}>
-                A coordinate-aware food recovery logistics network empowering commercial food donors to route surplus ingredients to nearby hunger-relief centers in real time.
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginTop: '1rem', lineHeight: 1.65, maxWidth: '520px' }}>
+                A coordinate-aware food recovery logistics network empowering commercial food donors to route perishable surplus ingredients to nearby hunger-relief centers in real time.
               </p>
             </div>
 
             {/* Vertical Workflow Stack */}
-            <div className="auth-workflow-list">
-              <div className="auth-workflow-item" style={{ borderLeft: '3px solid var(--accent-green)' }}>
-                <div className="auth-workflow-icon" style={{ background: 'var(--surface-active)', color: 'var(--accent-green)' }}>
-                  <Zap size={18} />
+            <div className="auth-workflow-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="card-pro" style={{ padding: '1.15rem 1.25rem', borderLeft: '4px solid var(--accent-green)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--surface-active)', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)' }}>
+                  <Zap size={20} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>1. Nothing goes to waste</div>
-                    <span className="chip chip-green" style={{ fontSize: '0.65rem' }}>FEFO Sorting</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.96rem', color: 'var(--text-primary)' }}>1. Nothing goes to waste</div>
+                    <span className="chip chip-green" style={{ fontSize: '0.68rem', padding: '0.2rem 0.6rem' }}>FEFO Priority</span>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>
-                    Surplus closest to expiry gets matched and routed first, so food gets rescued before it spoils.
+                  <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.3rem', lineHeight: 1.55 }}>
+                    Surplus closest to expiry gets matched and routed first, preventing safe commercial ingredients from spoiling.
                   </div>
                 </div>
               </div>
 
-              <div className="auth-workflow-item" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
-                <div className="auth-workflow-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
-                  <MapPin size={18} />
+              <div className="card-pro" style={{ padding: '1.15rem 1.25rem', borderLeft: '4px solid var(--accent-blue)', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--surface-info)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(37, 99, 235, 0.15)' }}>
+                  <MapPin size={20} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>2. Only nearby kitchens see it</div>
-                    <span className="chip chip-cyan" style={{ fontSize: '0.65rem' }}>15 km Radius</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.96rem', color: 'var(--text-primary)' }}>2. Only nearby kitchens see it</div>
+                    <span className="chip chip-cyan" style={{ fontSize: '0.68rem', padding: '0.2rem 0.6rem' }}>15 km Safe Radius</span>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>
-                    Listings are automatically matched to kitchens within a safe delivery radius (~15km), so pickups stay fast and food stays fresh.
+                  <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.3rem', lineHeight: 1.55 }}>
+                    Listings are matched strictly within a 15km geographic threshold so cold chains remain intact and transit stays under 30 minutes.
                   </div>
                 </div>
               </div>
 
-              <div className="auth-workflow-item" style={{ borderLeft: '3px solid var(--primary-500)' }}>
-                <div className="auth-workflow-icon" style={{ background: 'var(--surface-active)', color: 'var(--accent-green)' }}>
-                  <ShieldCheck size={18} />
+              <div className="card-pro" style={{ padding: '1.15rem 1.25rem', borderLeft: '4px solid #8B5CF6', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.12)', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(139, 92, 246, 0.15)' }}>
+                  <ShieldCheck size={20} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>3. Verified in person, every time</div>
-                    <span className="chip chip-green" style={{ fontSize: '0.65rem' }}>6-Digit OTP</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.96rem', color: 'var(--text-primary)' }}>3. Verified in person, every time</div>
+                    <span className="chip chip-purple" style={{ fontSize: '0.68rem', padding: '0.2rem 0.6rem' }}>Cryptographic OTP</span>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem', lineHeight: 1.5 }}>
-                    A one-time code confirms the handoff actually happened, so there's never a dispute about what was picked up.
+                  <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.3rem', lineHeight: 1.55 }}>
+                    A single-use 6-digit code securely seals the physical handoff on pickup, preventing quantity disputes and double-bookings.
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Bottom Impact Ticker */}
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>100%</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Chain of Custody</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-600)' }}>15 km</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Proximity Radius</div>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.25rem', fontWeight: 800, color: 'var(--accent-blue)' }}>&lt; 30 min</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Average Response</div>
               </div>
             </div>
           </div>
 
           {/* Right Side: Authentication Card */}
-          <div className="card-panel" style={{ padding: '2.5rem', width: '100%', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-level-3)', border: '1px solid var(--border-default)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          <div className="card-pro" style={{ padding: '2.5rem', width: '100%', borderRadius: '16px', boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
                 {activeTab === 'login' ? 'Sign In to Portal' : 'Register Organization'}
               </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                {activeTab === 'login' ? 'Access your food rescue routing dashboard' : 'Join our verified community network to donate or receive surplus'}
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
+                {activeTab === 'login' ? 'Access your food recovery operations dashboard' : 'Join our verified community network to donate or receive surplus'}
               </p>
             </div>
 
             {/* Segmented Tab Switcher */}
-            <div className="segmented-control" style={{ width: '100%', marginBottom: '1.25rem' }}>
+            <div className="segmented-control-modern" style={{ width: '100%', marginBottom: '1.5rem', display: 'flex' }}>
               <button
                 type="button"
-                className={`segmented-btn ${activeTab === 'login' ? 'active' : ''}`}
+                className={`segmented-btn-modern ${activeTab === 'login' ? 'active' : ''}`}
                 style={{ flex: 1, justifyContent: 'center' }}
                 onClick={() => { setActiveTab('login'); setRegStep(1); setError(''); setSuccess(''); }}
               >
@@ -271,7 +287,7 @@ export default function LoginRegister({ onLogin }) {
               </button>
               <button
                 type="button"
-                className={`segmented-btn ${activeTab === 'register' ? 'active' : ''}`}
+                className={`segmented-btn-modern ${activeTab === 'register' ? 'active' : ''}`}
                 style={{ flex: 1, justifyContent: 'center' }}
                 onClick={() => { setActiveTab('register'); setRegStep(1); setError(''); setSuccess(''); }}
               >
@@ -279,22 +295,26 @@ export default function LoginRegister({ onLogin }) {
               </button>
             </div>
 
-            {/* Demo Accounts — always visible so anyone (recruiters, judges) can try the app */}
+            {/* Demo Accounts Panel */}
             {activeTab === 'login' && (
               <div style={{
-                background: 'var(--bg-surface-subtle)',
+                background: 'var(--bg-surface-hover)',
                 border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                padding: '1rem',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.6rem'
+                gap: '0.75rem',
+                marginBottom: '1.5rem'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
-                  <Sparkles size={13} color="var(--primary-500)" />
-                  <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Try a Demo Account
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Sparkles size={14} color="var(--primary-500)" />
+                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Instant Demo Sign-In
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>No signup needed</span>
                 </div>
 
                 {/* Donor Row */}
@@ -302,17 +322,21 @@ export default function LoginRegister({ onLogin }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '0.5rem',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '0.5rem 0.75rem'
+                  gap: '0.6rem',
+                  background: 'var(--bg-surface)',
+                  border: selectedQuickRole === 'donor' ? '1px solid var(--accent-green)' : '1px solid var(--border-default)',
+                  borderRadius: '10px',
+                  padding: '0.65rem 0.85rem',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.18s ease'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                    <UtensilsCrossed size={14} color="var(--accent-green)" style={{ flexShrink: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <UtensilsCrossed size={15} color="var(--accent-green)" />
+                    </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>Food Donor</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Food Donor Facility</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         donor1@portal.com · password123
                       </div>
                     </div>
@@ -320,18 +344,8 @@ export default function LoginRegister({ onLogin }) {
                   <button
                     type="button"
                     onClick={() => handleQuickFill('donor')}
-                    style={{
-                      flexShrink: 0,
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '0.3rem 0.65rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--accent-green)',
-                      background: selectedQuickRole === 'donor' ? 'var(--accent-green)' : 'transparent',
-                      color: selectedQuickRole === 'donor' ? '#fff' : 'var(--accent-green)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
+                    className={`btn btn-sm ${selectedQuickRole === 'donor' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem', borderRadius: '8px' }}
                   >
                     {selectedQuickRole === 'donor' ? '✓ Loaded' : 'Use'}
                   </button>
@@ -342,17 +356,21 @@ export default function LoginRegister({ onLogin }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '0.5rem',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '0.5rem 0.75rem'
+                  gap: '0.6rem',
+                  background: 'var(--bg-surface)',
+                  border: selectedQuickRole === 'kitchen' ? '1px solid var(--accent-blue)' : '1px solid var(--border-default)',
+                  borderRadius: '10px',
+                  padding: '0.65rem 0.85rem',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.18s ease'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                    <Building2 size={14} color="var(--accent-blue)" style={{ flexShrink: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-info)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Building2 size={15} color="var(--accent-blue)" />
+                    </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)' }}>Soup Kitchen</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Community Soup Kitchen</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         kitchen1@portal.com · password123
                       </div>
                     </div>
@@ -360,17 +378,12 @@ export default function LoginRegister({ onLogin }) {
                   <button
                     type="button"
                     onClick={() => handleQuickFill('kitchen')}
+                    className={`btn btn-sm ${selectedQuickRole === 'kitchen' ? 'btn-primary' : 'btn-outline'}`}
                     style={{
-                      flexShrink: 0,
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '0.3rem 0.65rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--accent-blue)',
-                      background: selectedQuickRole === 'kitchen' ? 'var(--accent-blue)' : 'transparent',
-                      color: selectedQuickRole === 'kitchen' ? '#fff' : 'var(--accent-blue)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      fontSize: '0.74rem',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '8px',
+                      ...(selectedQuickRole === 'kitchen' ? { background: 'var(--accent-blue)', borderColor: 'var(--accent-blue)' } : {})
                     }}
                   >
                     {selectedQuickRole === 'kitchen' ? '✓ Loaded' : 'Use'}
@@ -378,9 +391,9 @@ export default function LoginRegister({ onLogin }) {
                 </div>
 
                 {selectedQuickRole && (
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--border-subtle)' }}>
-                    <CheckCircle2 size={12} />
-                    <span>Credentials auto-filled — click Sign In to enter</span>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', paddingTop: '0.35rem' }}>
+                    <CheckCircle2 size={13} />
+                    <span>Credentials auto-filled — click below to enter dashboard</span>
                   </div>
                 )}
               </div>

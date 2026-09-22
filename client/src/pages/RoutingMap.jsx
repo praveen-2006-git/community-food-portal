@@ -171,7 +171,17 @@ export default function RoutingMap({ user }) {
     <div className="main-content" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 145px)', minHeight: '520px', padding: '1.25rem 2rem' }}>
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h1 className="dashboard-title" style={{ fontSize: '1.55rem', margin: 0 }}>Community Pickup &amp; Routing Map</h1>
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+            <span className="chip chip-green" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+              ● Live Geospatial Routing
+            </span>
+            <span className="chip chip-neutral" style={{ fontSize: '0.7rem' }}>
+              15 km Dynamic Geofence
+            </span>
+          </div>
+          <h1 className="dashboard-title" style={{ fontSize: '1.6rem', margin: 0 }}>Community Pickup &amp; Routing Map</h1>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           {/* Legend */}

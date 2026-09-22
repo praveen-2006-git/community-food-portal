@@ -370,56 +370,68 @@ export default function DonorDashboard({ user }) {
 
       {/* Community Activity & Impact Overview */}
       {!stats ? (
-        <div className="metrics-strip animate-fade-up-delay-1">
+        <div className="telemetry-grid animate-fade-up-delay-1">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="skeleton skeleton-stat" />
+            <div key={i} className="skeleton skeleton-stat" style={{ height: '110px' }} />
           ))}
         </div>
       ) : (
-        <div className="metrics-strip animate-fade-up-delay-1">
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
-              <UtensilsCrossed size={22} />
-            </div>
-            <div>
-              <div className="metric-label">Active Surplus Batches</div>
-              <div className="metric-value">{stats.totalIngredients}</div>
-            </div>
-          </div>
-
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <div className="metric-label">Fulfilled Distributions</div>
-              <div className="metric-value" style={{ color: 'var(--accent-blue)' }}>
-                {stats.totalFulfilled}
+        <div className="telemetry-grid animate-fade-up-delay-1">
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+                <UtensilsCrossed size={20} />
               </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-active)', color: 'var(--primary-600)' }}>Active Inventory</span>
+            </div>
+            <div>
+              <div className="telemetry-val">{stats.totalIngredients}</div>
+              <div className="telemetry-lbl">Active Surplus Batches</div>
             </div>
           </div>
 
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-warning)', color: 'var(--accent-amber)' }}>
-              <Clock size={22} />
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>
+                <CheckCircle2 size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>Confirmed Handover</span>
             </div>
             <div>
-              <div className="metric-label">Active Reservations</div>
-              <div className="metric-value" style={{ color: 'var(--accent-amber)' }}>
+              <div className="telemetry-val" style={{ color: 'var(--accent-blue)' }}>{stats.totalFulfilled}</div>
+              <div className="telemetry-lbl">Fulfilled Distributions</div>
+            </div>
+          </div>
+
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-warning)', color: 'var(--accent-amber)' }}>
+                <Clock size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-warning)', color: 'var(--accent-amber)' }}>Pickup Scheduled</span>
+            </div>
+            <div>
+              <div className="telemetry-val" style={{ color: 'var(--accent-amber)' }}>
                 {reservations.filter(r => r.deliveryStatus !== 'completed' && r.deliveryStatus !== 'cancelled').length}
               </div>
+              <div className="telemetry-lbl">Active Reservations</div>
             </div>
           </div>
 
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: stats.reputationScore >= 60 ? 'var(--surface-active)' : 'var(--surface-warning)', color: stats.reputationScore >= 60 ? 'var(--primary-500)' : 'var(--accent-amber)' }}>
-              <ShieldCheck size={22} />
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: stats.reputationScore >= 60 ? 'var(--surface-active)' : 'var(--surface-warning)', color: stats.reputationScore >= 60 ? 'var(--primary-500)' : 'var(--accent-amber)' }}>
+                <ShieldCheck size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: stats.reputationScore >= 60 ? 'var(--surface-active)' : 'var(--surface-warning)', color: stats.reputationScore >= 60 ? 'var(--primary-600)' : 'var(--accent-amber)' }}>
+                {stats.reputationScore >= 60 ? 'Certified Trusted' : 'Needs Attention'}
+              </span>
             </div>
             <div>
-              <div className="metric-label">Community Trust Score</div>
-              <div className="metric-value" style={{ color: stats.reputationScore >= 60 ? 'var(--primary-500)' : stats.reputationScore >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)' }}>
-                {stats.reputationScore} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ 100</span>
+              <div className="telemetry-val" style={{ color: stats.reputationScore >= 60 ? 'var(--primary-500)' : stats.reputationScore >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)' }}>
+                {stats.reputationScore} <span style={{ fontSize: '0.9rem', color: 'var(--text-tertiary)' }}>/ 100</span>
               </div>
+              <div className="telemetry-lbl">Community Trust Score</div>
             </div>
           </div>
         </div>
@@ -441,32 +453,32 @@ export default function DonorDashboard({ user }) {
         </div>
 
         {/* Filter and Search Toolbar */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="segmented-control-modern" role="tablist">
             <button
               type="button"
-              className={`chip ${statusFilter === 'all' ? 'chip-green' : 'chip-neutral'}`}
+              className={`segmented-btn-modern ${statusFilter === 'all' ? 'active' : ''}`}
               onClick={() => setStatusFilter('all')}
             >
               All Batches ({ingredients.length})
             </button>
             <button
               type="button"
-              className={`chip ${statusFilter === 'available' ? 'chip-green' : 'chip-neutral'}`}
+              className={`segmented-btn-modern ${statusFilter === 'available' ? 'active' : ''}`}
               onClick={() => setStatusFilter('available')}
             >
               Available ({ingredients.filter(i => i.status === 'available').length})
             </button>
             <button
               type="button"
-              className={`chip ${statusFilter === 'pending' ? 'chip-amber' : 'chip-neutral'}`}
+              className={`segmented-btn-modern ${statusFilter === 'pending' ? 'active' : ''}`}
               onClick={() => setStatusFilter('pending')}
             >
-              Pending Review ({ingredients.filter(i => i.status === 'pending').length})
+              Pending ({ingredients.filter(i => i.status === 'pending').length})
             </button>
             <button
               type="button"
-              className={`chip ${statusFilter === 'claimed' ? 'chip-cyan' : 'chip-neutral'}`}
+              className={`segmented-btn-modern ${statusFilter === 'claimed' ? 'active' : ''}`}
               onClick={() => setStatusFilter('claimed')}
             >
               Reserved ({ingredients.filter(i => ['claimed', 'pickup_scheduled'].includes(i.status)).length})
@@ -532,122 +544,121 @@ export default function DonorDashboard({ user }) {
             <div className="listings-grid">
               {filtered.map((ing) => {
                 const urg = getUrgency(ing.expiryDate);
-                const cardAccentClass = urg?.className === 'urgency-critical' ? 'card-urgent'
-                  : urg?.className === 'urgency-warning' ? 'card-warning'
-                  : ing.status === 'pending' ? 'card-pending'
-                  : ing.status === 'available' ? 'card-available'
-                  : 'card-claimed';
+                const diffHours = (new Date(ing.expiryDate) - new Date()) / (1000 * 60 * 60);
+                const pct = Math.max(8, Math.min(100, (diffHours / 72) * 100));
+                const fillClass = diffHours < 24 ? 'expiry-fill-critical' : diffHours < 48 ? 'expiry-fill-warning' : 'expiry-fill-safe';
+
                 return (
-                <div key={ing._id} className={`ingredient-card ${cardAccentClass}`}>
-                  <div className="card-header" style={{ paddingTop: '1.15rem' }}>
-                    <div>
-                      <h3 className="card-title">{ing.name}</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                        <CategoryChip category={ing.category} />
-                        {urg ? <span className={`urgency-badge ${urg.className}`}>{urg.label}</span> : null}
+                  <div key={ing._id} className="modern-food-card">
+                    <div className="modern-food-header">
+                      <div className="food-title-group">
+                        <h3>{ing.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                          <CategoryChip category={ing.category} />
+                          <StorageChip condition={ing.storageType} />
+                          {urg && <span className={`urgency-badge ${urg.className}`}>{urg.label}</span>}
+                        </div>
+                      </div>
+                      <div className="food-quantity-badge">
+                        {ing.quantity} {ing.unit}
                       </div>
                     </div>
-                    <span className={`status-badge status-${ing.status}`}>
-                      {ing.status}
-                    </span>
-                  </div>
 
-                <div className="card-body">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                    <div className="quantity-capsule">
-                      <span className="quantity-number">{ing.quantity}</span>
-                      <span className="quantity-unit">{ing.unit}</span>
-                    </div>
-                    <StorageChip condition={ing.storageType} />
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Expiry Date:</span>
-                    <span className="info-value" style={{ color: 'var(--accent-rose)' }}>{formatDate(ing.expiryDate)}</span>
-                  </div>
-
-                  {/* Visual Shelf-Life Decay Meter */}
-                  {(() => {
-                    const diffHours = (new Date(ing.expiryDate) - new Date()) / (1000 * 60 * 60);
-                    const pct = Math.max(8, Math.min(100, (diffHours / 72) * 100));
-                    const fillClass = diffHours < 24 ? 'shelf-life-critical' : diffHours < 48 ? 'shelf-life-warning' : 'shelf-life-safe';
-                    return (
-                      <div className="shelf-life-meter" title={`Shelf life remaining: ~${Math.max(0, Math.round(diffHours))}h`}>
-                        <div className={`shelf-life-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+                    {/* Expiry Timeline countdown box */}
+                    <div className="expiry-timeline-box">
+                      <div className="expiry-timeline-labels">
+                        <span style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>
+                          Decay Timeline (FEFO)
+                        </span>
+                        <span style={{ color: diffHours < 24 ? 'var(--accent-rose)' : diffHours < 48 ? 'var(--accent-amber)' : 'var(--primary-600)' }}>
+                          {formatDate(ing.expiryDate)}
+                        </span>
                       </div>
-                    );
-                  })()}
+                      <div className="expiry-track" title={`Shelf life: ~${Math.max(0, Math.round(diffHours))}h remaining`}>
+                        <div className={fillClass} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
 
-                  <div className="info-item" style={{ marginTop: '0.2rem' }}>
-                    <span className="info-label">Pickup Deadline:</span>
-                    <span className="info-value">{formatDate(ing.pickupDeadline)}</span>
-                  </div>
-                  <div className="info-item" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="info-label">Dispatch Point:</span>
-                    <a
-                      href={`https://www.google.com/maps?q=${ing.location.lat},${ing.location.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="info-value"
-                      title={`Facility Coordinates: ${ing.location.lat.toFixed(4)}, ${ing.location.lng.toFixed(4)}`}
-                      style={{ fontSize: '0.78rem', color: 'var(--primary-600)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}
-                    >
-                      <MapPin size={12} />
-                      <span>Facility Dispatch Pin</span>
-                    </a>
-                  </div>
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Status:</span>
+                        <span className={`status-badge status-${ing.status}`}>
+                          {ing.status}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Pickup Deadline:</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatDate(ing.pickupDeadline)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.45rem', marginTop: '0.2rem' }}>
+                        <span>Facility Dispatch:</span>
+                        <a
+                          href={`https://www.google.com/maps?q=${ing.location.lat},${ing.location.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`GPS: ${ing.location.lat.toFixed(4)}, ${ing.location.lng.toFixed(4)}`}
+                          style={{ fontSize: '0.78rem', color: 'var(--primary-600)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}
+                        >
+                          <MapPin size={12} />
+                          <span>Dispatch Pin</span>
+                        </a>
+                      </div>
+                    </div>
 
-                <div className="card-footer" style={{ display: 'flex', gap: '0.45rem' }}>
-                  <button 
-                    className="btn btn-secondary btn-sm" 
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
-                    onClick={() => handleOpenEditModal(ing)}
-                  >
-                    <Edit3 size={13} />
-                    <span>Edit</span>
-                  </button>
-                  <Link
-                    to="/map"
-                    className="btn btn-secondary btn-sm"
-                    style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-                    title="View on routing map"
-                  >
-                    <MapPin size={13} color="var(--primary-600)" />
-                  </Link>
-                  <button 
-                    className="btn btn-danger btn-sm" 
-                    style={{ padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onClick={() => handleDelete(ing._id)}
-                    title="Delete batch"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    <div style={{ display: 'flex', gap: '0.45rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                        onClick={() => handleOpenEditModal(ing)}
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                      <Link
+                        to="/map"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+                        title="View on routing map"
+                      >
+                        <MapPin size={13} color="var(--primary-600)" />
+                      </Link>
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-rose)' }}
+                        onClick={() => handleDelete(ing._id)}
+                        title="Delete batch"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         );
       })()}
       </div>
 
       {/* Pending Pickups & Verified Handover Section */}
-      <div id="pickup-queue" className="attention-station animate-fade-up animate-fade-up-delay-1">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div id="pickup-queue" className="card-pro animate-fade-up animate-fade-up-delay-1" style={{ padding: '1.75rem', marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
-              <span className="chip chip-green" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
-                ● Pickup &amp; Handover Station
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+              <span className="chip chip-green" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+                ● Verified Handover Station
+              </span>
+              <span className="chip chip-neutral" style={{ fontSize: '0.7rem' }}>
+                Cryptographic Custody
               </span>
             </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               Live Pickup &amp; Custody Verification
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', marginTop: '0.25rem' }}>
               Verify collector 6-digit OTP codes and confirm physical transfer of reserved surplus food.
             </p>
           </div>
-          <span className="status-badge status-pickup_scheduled" style={{ fontSize: '0.78rem' }}>
+          <span className="status-badge status-pickup_scheduled" style={{ fontSize: '0.8rem' }}>
             {reservations.length} Pending Handover{reservations.length === 1 ? '' : 's'}
           </span>
         </div>
@@ -667,32 +678,34 @@ export default function DonorDashboard({ user }) {
               const isChecked = !!confirmedChecks[res._id];
 
               return (
-                <div key={res._id} className="ingredient-card card-claimed" style={{ borderLeft: '3px solid var(--accent-blue)' }}>
-                  <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 className="card-title">{ing?.name || 'Surplus Ingredient'}</h3>
-                      <span className={`status-badge status-${res.deliveryStatus}`}>
-                        {res.deliveryStatus.replace('_', ' ')}
-                      </span>
+                <div key={res._id} className="modern-food-card" style={{ borderLeft: '4px solid var(--accent-blue)' }}>
+                  <div className="modern-food-header">
+                    <div className="food-title-group">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <h3>{ing?.name || 'Surplus Ingredient'}</h3>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.3rem' }}>
+                        <span className="chip chip-neutral" style={{ fontSize: '0.72rem' }}>{ing?.category || 'General'}</span>
+                        <span style={{ color: isConfirmed ? 'var(--accent-green)' : 'var(--accent-amber)', fontSize: '0.74rem', fontWeight: 700 }}>
+                          {isConfirmed ? '✓ OTP Validated' : '⏳ Awaiting Code'}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.78rem' }}>
-                      <span style={{ color: 'var(--text-tertiary)' }}>{ing?.category || 'General'}</span>
-                      <span style={{ color: isConfirmed ? 'var(--accent-green)' : 'var(--accent-amber)', fontWeight: 700 }}>
-                        {isConfirmed ? '✓ OTP Validated' : '⏳ Awaiting Code'}
-                      </span>
-                    </div>
+                    <span className={`status-badge status-${res.deliveryStatus}`}>
+                      {res.deliveryStatus.replace('_', ' ')}
+                    </span>
                   </div>
 
-                  <div className="card-body">
-                    <div className="info-item">
+                  <div className="card-body" style={{ padding: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.4rem 0' }}>
                       <span className="info-label">Claimed Quantity:</span>
-                      <span className="info-value" style={{ color: 'var(--primary-400)', fontWeight: 700 }}>
+                      <span className="food-quantity-badge" style={{ fontSize: '0.95rem', padding: '0.2rem 0.6rem' }}>
                         {res.reservedQuantity} {ing?.unit}
                       </span>
                     </div>
-                    <div className="info-item">
+                    <div className="info-item" style={{ marginBottom: '0.65rem' }}>
                       <span className="info-label">Receiving Kitchen:</span>
-                      <span className="info-value">{req?.kitchenRef?.name || 'Local Kitchen'}</span>
+                      <span className="info-value" style={{ fontWeight: 700 }}>{req?.kitchenRef?.name || 'Local Kitchen'}</span>
                     </div>
 
                     {/* Timeline Ribbon */}
@@ -700,9 +713,9 @@ export default function DonorDashboard({ user }) {
 
                     {/* OTP Entry Verification Form */}
                     {['claimed', 'pickup_scheduled'].includes(res.deliveryStatus) && !isConfirmed && (
-                      <div style={{ marginTop: '0.75rem', background: 'var(--bg-surface-subtle)', padding: '0.9rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                        <label className="form-label" style={{ fontSize: '0.72rem' }}>Enter Driver 6-Digit Pickup OTP</label>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                      <div style={{ marginTop: '0.9rem', background: 'var(--bg-surface-hover)', padding: '0.9rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                        <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Enter Collector 6-Digit Pickup OTP</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
                           <input 
                             type="text"
                             maxLength={6}
@@ -710,10 +723,11 @@ export default function DonorDashboard({ user }) {
                             className="form-control"
                             value={enteredCodes[res._id] || ''}
                             onChange={(e) => setEnteredCodes({ ...enteredCodes, [res._id]: e.target.value })}
-                            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '2px', fontSize: '1rem', textAlign: 'center', padding: '0.45rem' }}
+                            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '4px', fontSize: '1.1rem', fontWeight: 800, textAlign: 'center', padding: '0.45rem' }}
                           />
                           <button 
                             className="btn btn-primary btn-sm"
+                            style={{ padding: '0.45rem 1rem' }}
                             onClick={() => handleVerifyPickup(res._id)}
                           >
                             Verify
@@ -724,22 +738,22 @@ export default function DonorDashboard({ user }) {
 
                     {/* Handover Completion Confirmation */}
                     {res.deliveryStatus === 'pickup_scheduled' && isConfirmed && (
-                      <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', background: 'var(--surface-active)', padding: '0.6rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(30, 122, 74, 0.25)' }}>
+                      <div style={{ marginTop: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', background: 'var(--surface-active)', padding: '0.75rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(30, 122, 74, 0.25)' }}>
                           <input 
                             type="checkbox" 
                             id={`confirm-${res._id}`}
                             checked={isChecked}
                             onChange={(e) => setConfirmedChecks({ ...confirmedChecks, [res._id]: e.target.checked })}
-                            style={{ marginTop: '0.2rem', cursor: 'pointer', accentColor: 'var(--accent-green)' }}
+                            style={{ marginTop: '0.2rem', cursor: 'pointer', accentColor: 'var(--accent-green)', width: '16px', height: '16px' }}
                           />
-                          <label htmlFor={`confirm-${res._id}`} style={{ fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', lineHeight: 1.4 }}>
+                          <label htmlFor={`confirm-${res._id}`} style={{ fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', lineHeight: 1.4 }}>
                             I confirm physical handover of <strong>{res.reservedQuantity} {ing?.unit}</strong> to the verified collector.
                           </label>
                         </div>
                         <button 
                           className="btn btn-primary btn-sm"
-                          style={{ width: '100%' }}
+                          style={{ width: '100%', padding: '0.6rem' }}
                           disabled={!isChecked}
                           onClick={() => handleMarkPickedUp(res._id)}
                         >
@@ -749,13 +763,13 @@ export default function DonorDashboard({ user }) {
                     )}
 
                     {res.deliveryStatus === 'handed_over' && (
-                      <div style={{ marginTop: '0.5rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.82rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.65rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.6rem', borderRadius: '8px', color: 'var(--accent-green)', fontWeight: 700, fontSize: '0.84rem', textAlign: 'center' }}>
                         ✓ Handed Over to Driver
                       </div>
                     )}
 
                     {res.deliveryStatus === 'completed' && (
-                      <div style={{ marginTop: '0.5rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-green)', fontWeight: 600, fontSize: '0.82rem', textAlign: 'center' }}>
+                      <div style={{ marginTop: '0.65rem', background: 'var(--surface-active)', border: '1px solid rgba(30, 122, 74, 0.25)', padding: '0.6rem', borderRadius: '8px', color: 'var(--accent-green)', fontWeight: 700, fontSize: '0.84rem', textAlign: 'center' }}>
                         ✓ Delivery Fulfilled Successfully
                       </div>
                     )}
@@ -766,6 +780,7 @@ export default function DonorDashboard({ user }) {
           </div>
         )}
       </div>
+
 
       {/* Add Listing Modal */}
       {showAddModal && (

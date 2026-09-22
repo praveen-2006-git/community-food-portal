@@ -145,65 +145,73 @@ export default function ReputationLedger() {
       {/* Top-3 Community Partners */}
       {!loading && !error && showPodium && (
         <div style={{
-          padding: '1.5rem',
+          padding: '2rem 1.5rem 1.5rem',
           borderBottom: '1px solid var(--border-subtle)',
           background: 'var(--bg-surface-subtle)',
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-tertiary)', marginBottom: '0.85rem' }}>
-            Leading Community Partners
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-600)' }}>
+                Hall of Trust
+              </div>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.15rem 0 0 0' }}>
+                Top Regional Food Rescue Partners
+              </h4>
+            </div>
+            <span className="chip chip-green" style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+              ★ Highest Community Reliability
+            </span>
           </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1rem',
-          }}>
+
+          <div className="podium-grid">
             {podiumEntries.map((entry, i) => {
               const rank = i + 1;
-              const r = TRUST_RANKS[rank];
+              const podiumClass = rank === 1 ? 'podium-card-gold' : rank === 2 ? 'podium-card-silver' : 'podium-card-bronze';
+              const crownLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
               const score = entry.reputationScore;
               const scoreColor = score >= 60 ? 'var(--primary-600)' : score >= 40 ? 'var(--accent-amber)' : 'var(--accent-rose)';
 
               return (
                 <div
                   key={entry._id || i}
-                  className="glass-panel animate-fade-up"
-                  style={{
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '1.25rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    boxShadow: 'var(--shadow-xs)',
-                    transition: 'var(--transition-base)'
-                  }}
+                  className={`podium-card ${podiumClass} animate-fade-up`}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                    <RankBadge rank={rank} />
-                    <span className={`chip ${entry.role === 'donor' ? 'chip-green' : 'chip-cyan'}`} style={{ fontSize: '0.68rem', textTransform: 'capitalize' }}>
-                      {entry.role === 'donor' ? 'Food Donor' : 'Soup Kitchen'}
+                  <div className="podium-rank-crown">
+                    {crownLabel}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.6rem' }}>
+                    <span className={`chip ${entry.role === 'donor' ? 'chip-green' : 'chip-cyan'}`} style={{ fontSize: '0.7rem', textTransform: 'capitalize' }}>
+                      {entry.role === 'donor' ? 'Verified Donor' : 'Soup Kitchen'}
                     </span>
                   </div>
                   <div style={{
-                    fontWeight: 700,
-                    fontSize: '1rem',
+                    fontWeight: 800,
+                    fontSize: '1.15rem',
                     color: 'var(--text-primary)',
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.75rem',
                     lineHeight: 1.3
                   }}>
                     {entry.name}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', marginTop: '0.35rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Trust Score:</span>
-                    <span style={{
-                      fontSize: '1.2rem',
-                      fontWeight: 800,
+                  <div style={{
+                    background: 'var(--bg-surface-hover)',
+                    borderRadius: '10px',
+                    padding: '0.75rem',
+                    border: '1px solid var(--border-subtle)',
+                    marginTop: 'auto'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Trust Index
+                    </div>
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 900,
                       color: scoreColor,
-                      fontFamily: "'JetBrains Mono', monospace"
+                      fontFamily: 'var(--font-mono)',
+                      marginTop: '0.1rem'
                     }}>
-                      {score} <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>/ 100</span>
-                    </span>
+                      {score} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>/ 100</span>
+                    </div>
                   </div>
                 </div>
               );

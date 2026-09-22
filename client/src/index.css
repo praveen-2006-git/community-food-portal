@@ -3339,3 +3339,526 @@ body.light-theme .handover-station {
 body.dark-theme .leaflet-tile-pane {
   filter: brightness(0.72) invert(0.92) contrast(1.15) hue-rotate(190deg) saturate(0.35);
 }
+
+/* ==========================================================================
+   2026 ENTERPRISE UI & POLISHED VISUAL LANGUAGE
+   Linear, Stripe & Vercel Inspired Production Design System
+   ========================================================================== */
+
+/* ── Ambient Background & Specular Glows ── */
+.app-container {
+  background: radial-gradient(1200px circle at 50% -100px, rgba(16, 185, 129, 0.05), transparent 70%),
+              var(--bg-canvas);
+  position: relative;
+}
+
+body.dark-theme .app-container {
+  background: radial-gradient(1000px circle at 50% -150px, rgba(16, 185, 129, 0.08), transparent 60%),
+              radial-gradient(800px circle at 90% 400px, rgba(37, 99, 235, 0.04), transparent 50%),
+              var(--bg-canvas);
+}
+
+/* ── Modern Navigation Enhancements ── */
+header.navbar {
+  height: 68px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme header.navbar {
+  background: rgba(17, 24, 39, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.brand {
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.brand-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+.nav-link {
+  font-size: 0.86rem;
+  padding: 0.48rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.04);
+  transform: translateY(-1px);
+}
+
+body.dark-theme .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-link.active {
+  color: var(--primary-600);
+  background: var(--surface-active);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+body.dark-theme .nav-link.active {
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.3);
+}
+
+/* ── Live Network Beacon ── */
+.hub-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--primary-600);
+  letter-spacing: 0.02em;
+}
+
+body.dark-theme .hub-live-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #34D399;
+}
+
+.hub-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  position: relative;
+}
+
+.hub-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.4);
+  animation: beaconPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes beaconPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(2); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+/* ── Elevated Pro Cards ── */
+.card-pro {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-pro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  pointer-events: none;
+}
+
+body.dark-theme .card-pro {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+}
+
+.card-pro:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+}
+
+body.dark-theme .card-pro:hover {
+  box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ── Modern Telemetry Card Grid ── */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.telemetry-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.35rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+body.dark-theme .telemetry-card {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.telemetry-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
+.telemetry-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.telemetry-icon-well {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.telemetry-card:hover .telemetry-icon-well {
+  transform: scale(1.08);
+}
+
+.telemetry-trend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.telemetry-val {
+  font-family: var(--font-mono);
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.telemetry-lbl {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-top: 0.35rem;
+}
+
+/* ── Modern Food Item Cards ── */
+.modern-food-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+body.dark-theme .modern-food-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.modern-food-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-500);
+  box-shadow: 0 12px 30px -8px rgba(16, 185, 129, 0.15), 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+body.dark-theme .modern-food-card:hover {
+  box-shadow: 0 14px 34px -8px rgba(16, 185, 129, 0.25), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.modern-food-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.food-title-group h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.food-quantity-badge {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-600);
+  background: var(--surface-active);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  white-space: nowrap;
+}
+
+body.dark-theme .food-quantity-badge {
+  color: #34D399;
+}
+
+/* ── Expiry Countdown Progress Bar ── */
+.expiry-timeline-box {
+  background: var(--bg-surface-hover);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.expiry-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.expiry-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.expiry-fill-safe {
+  height: 100%;
+  background: linear-gradient(90deg, #10B981, #059669);
+  border-radius: var(--radius-full);
+}
+
+.expiry-fill-warning {
+  height: 100%;
+  background: linear-gradient(90deg, #F59E0B, #D97706);
+  border-radius: var(--radius-full);
+}
+
+.expiry-fill-critical {
+  height: 100%;
+  background: linear-gradient(90deg, #EF4444, #DC2626);
+  border-radius: var(--radius-full);
+  animation: pulseUrgency 1.5s infinite;
+}
+
+@keyframes pulseUrgency {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Modern Button Shimmer & Tactile States ── */
+.btn-modern-primary {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  border: 1px solid #047857;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-modern-primary:hover {
+  background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-modern-primary:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Modern Interactive Segmented Controls ── */
+.segmented-control-modern {
+  display: inline-flex;
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-default);
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.segmented-btn-modern {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.84rem;
+  padding: 0.48rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.15s ease;
+}
+
+.segmented-btn-modern:hover {
+  color: var(--text-primary);
+}
+
+.segmented-btn-modern.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+body.dark-theme .segmented-btn-modern.active {
+  background: #1E293B;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Partner Podium (Trust Directory) ── */
+.podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  align-items: end;
+}
+
+@media (max-width: 860px) {
+  .podium-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.podium-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.85rem 1.5rem;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-level-1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.podium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-level-3);
+}
+
+.podium-card-gold {
+  border-color: #F59E0B;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, var(--bg-surface) 60%);
+  box-shadow: 0 8px 30px -6px rgba(245, 158, 11, 0.25);
+}
+
+.podium-card-silver {
+  border-color: #94A3B8;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.06) 0%, var(--bg-surface) 60%);
+}
+
+.podium-card-bronze {
+  border-color: #D97706;
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.06) 0%, var(--bg-surface) 60%);
+}
+
+.podium-rank-crown {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin: 0 auto 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.podium-card-gold .podium-rank-crown {
+  background: linear-gradient(135deg, #FCD34D 0%, #D97706 100%);
+  color: #78350F;
+}
+
+.podium-card-silver .podium-rank-crown {
+  background: linear-gradient(135deg, #E2E8F0 0%, #64748B 100%);
+  color: #0F172A;
+}
+
+.podium-card-bronze .podium-rank-crown {
+  background: linear-gradient(135deg, #FDBA74 0%, #C2410C 100%);
+  color: #7C2D12;
+}
+
+/* ── Modern Modal Architecture ── */
+.modal-overlay {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.modal-content {
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid var(--border-default) !important;
+  animation: modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

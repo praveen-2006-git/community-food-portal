@@ -97,14 +97,16 @@ function AppContent() {
         <header className="navbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Link to={homePath} className="brand">
-              <div className="brand-icon"><Sprout size={17} /></div>
-              <span>SurplusLink</span>
-              <span className="brand-badge">Food Rescue</span>
+              <div className="brand-icon"><Sprout size={18} /></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em' }}>SurplusLink</span>
+                <span className="brand-badge" style={{ fontSize: '0.62rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Enterprise</span>
+              </div>
             </Link>
 
-            <div className="hub-live-badge">
+            <div className="hub-live-badge" title="Real-time 15km Proximity Logistics Online">
               <span className="hub-live-dot" />
-              <span>Network Active</span>
+              <span>Regional Network Active</span>
             </div>
           </div>
 
@@ -292,12 +294,12 @@ function AppContent() {
         <footer className="app-footer">
           <div className="footer-content">
             <div className="footer-left">
-              <span className="footer-brand"><Sprout size={14} color="var(--primary-500)" /> SurplusLink</span>
-              <span className="footer-desc">Community Surplus Food Routing &amp; Hunger-Relief Logistics</span>
+              <span className="footer-brand"><Sprout size={15} color="var(--primary-500)" /> SurplusLink Enterprise</span>
+              <span className="footer-desc">Civic Surplus Food Routing &amp; Hunger-Relief Logistics Infrastructure</span>
             </div>
             <div className="footer-right">
-              <span className="footer-status-tag">● Regional Hub Active</span>
-              <span className="footer-cert">FEFO Decay · Proximity Routing · OTP Custody</span>
+              <span className="footer-status-tag">● Regional Hub Active (15 km Radius)</span>
+              <span className="footer-cert">FEFO Decay Prioritization · Cryptographic OTP Custody</span>
             </div>
           </div>
         </footer>

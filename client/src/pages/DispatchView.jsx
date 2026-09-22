@@ -326,14 +326,14 @@ export default function DispatchView({ user }) {
           </div>
 
           {/* Large Touch Keypad Station for OTP Handover Verification */}
-          <div className="glass-panel" style={{ padding: '1.75rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+          <div className="card-pro" style={{ padding: '2.25rem 2rem', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Handover Verification Terminal
             </span>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.25rem 0 0.4rem 0' }}>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.35rem 0 0.4rem 0', letterSpacing: '-0.02em' }}>
               Enter 6-Digit Pickup Code
             </h3>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto' }}>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto' }}>
               Obtain the 6-digit confirmation code from the soup kitchen app to certify custody transfer.
             </p>
 

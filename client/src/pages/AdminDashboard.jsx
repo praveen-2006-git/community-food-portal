@@ -274,54 +274,71 @@ export default function AdminDashboard({ user }) {
 
       {/* Network Activity & Impact Overview */}
       {stats && (
-        <div className="metrics-strip animate-fade-up-delay-1" style={{ marginBottom: '1.25rem' }}>
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
-              <Wheat size={22} />
+        <div className="telemetry-grid animate-fade-up-delay-1" style={{ marginBottom: '1.75rem' }}>
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+                <Wheat size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-active)', color: 'var(--primary-600)' }}>System Wide</span>
             </div>
             <div>
-              <div className="metric-label">Network Surplus Batches</div>
-              <div className="metric-value">{stats.totalIngredients}</div>
+              <div className="telemetry-val">{stats.totalIngredients}</div>
+              <div className="telemetry-lbl">Network Surplus Batches</div>
             </div>
           </div>
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
-              <ChefHat size={22} />
+
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-active)', color: 'var(--primary-500)' }}>
+                <ChefHat size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-active)', color: 'var(--primary-600)' }}>Fulfillment</span>
             </div>
             <div>
-              <div className="metric-label">Fulfilled Deliveries</div>
-              <div className="metric-value" style={{ color: 'var(--primary-500)' }}>{stats.totalFulfilled}</div>
+              <div className="telemetry-val" style={{ color: 'var(--primary-500)' }}>{stats.totalFulfilled}</div>
+              <div className="telemetry-lbl">Fulfilled Deliveries</div>
             </div>
           </div>
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: 'var(--surface-info)', color: 'var(--accent-cyan)' }}>
-              <Users size={22} />
+
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: 'var(--surface-info)', color: 'var(--accent-cyan)' }}>
+                <Users size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: 'var(--surface-info)', color: 'var(--accent-blue)' }}>Certified</span>
             </div>
             <div>
-              <div className="metric-label">Verified Donors</div>
-              <div className="metric-value" style={{ color: 'var(--accent-cyan)' }}>{stats.activeDonors}</div>
+              <div className="telemetry-val" style={{ color: 'var(--accent-cyan)' }}>{stats.activeDonors}</div>
+              <div className="telemetry-lbl">Verified Donors</div>
             </div>
           </div>
-          <div className="metric-cell">
-            <div className="metric-icon" style={{ background: pendingIngredients.length > 0 ? 'var(--surface-warning)' : 'var(--surface-active)', color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>
-              <ClipboardList size={22} />
+
+          <div className="telemetry-card">
+            <div className="telemetry-top">
+              <div className="telemetry-icon-well" style={{ background: pendingIngredients.length > 0 ? 'var(--surface-warning)' : 'var(--surface-active)', color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>
+                <ClipboardList size={20} />
+              </div>
+              <span className="telemetry-trend" style={{ background: pendingIngredients.length > 0 ? 'var(--surface-warning)' : 'var(--surface-active)', color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-600)' }}>
+                {pendingIngredients.length > 0 ? 'Requires Action' : 'Cleared'}
+              </span>
             </div>
             <div>
-              <div className="metric-label">Pending Review Queue</div>
-              <div className="metric-value" style={{ color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>{pendingIngredients.length}</div>
+              <div className="telemetry-val" style={{ color: pendingIngredients.length > 0 ? 'var(--accent-amber)' : 'var(--primary-500)' }}>{pendingIngredients.length}</div>
+              <div className="telemetry-lbl">Pending Review Queue</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Segmented Tab Navigation */}
-      <div className="segmented-control animate-fade-up-delay-2" role="tablist" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="segmented-control-modern animate-fade-up-delay-2" role="tablist" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button
             key={t.key}
             role="tab"
             aria-selected={activeTab === t.key}
-            className={`segmented-btn ${activeTab === t.key ? 'active' : ''}`}
+            className={`segmented-btn-modern ${activeTab === t.key ? 'active' : ''}`}
             onClick={() => setActiveTab(t.key)}
           >
             {t.icon}
@@ -387,66 +404,70 @@ export default function AdminDashboard({ user }) {
             {selectedIngredient && (
               <div
                 key={selectedIngredient._id}
-                className="glass-panel"
+                className="card-pro"
                 style={{
-                  padding: '1.5rem',
+                  padding: '1.65rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '1.1rem',
+                  gap: '1.15rem',
                   position: 'sticky',
                   top: '78px',
                   height: 'fit-content',
-                  boxShadow: 'var(--shadow-md)'
+                  boxShadow: 'var(--shadow-level-2)'
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                      <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                         {selectedIngredient.name}
                       </h3>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-                        Category: <strong style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{selectedIngredient.category}</strong>
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.35rem' }}>
+                        <span className="chip chip-green" style={{ fontSize: '0.72rem', textTransform: 'capitalize' }}>
+                          {selectedIngredient.category}
+                        </span>
+                        <span className="chip chip-neutral" style={{ fontSize: '0.72rem' }}>
+                          Hold condition: {selectedIngredient.storageType}
+                        </span>
+                      </div>
                     </div>
                     <span className="status-badge status-pending" style={{ flexShrink: 0, marginTop: '2px' }}>
-                      Pending Review
+                      Pending Quality Review
                     </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', background: 'var(--bg-tertiary)', padding: '0.9rem', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Listing Details</span>
-                    <p style={{ color: 'var(--text-secondary)' }}>Qty: <strong style={{ color: 'var(--primary-500)' }}>{selectedIngredient.quantity} {selectedIngredient.unit}</strong></p>
-                    <p style={{ color: 'var(--text-secondary)' }}>Storage: <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.storageType}</strong></p>
-                    <p style={{ color: 'var(--text-secondary)' }}>Expiry: <strong style={{ color: 'var(--accent-rose)' }}>{formatDate(selectedIngredient.expiryDate)}</strong></p>
-                    <p style={{ color: 'var(--text-secondary)' }}>Deadline: <strong style={{ color: 'var(--text-primary)' }}>{formatDate(selectedIngredient.pickupDeadline)}</strong></p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.84rem' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Batch Telemetry</span>
+                    <p style={{ color: 'var(--text-secondary)' }}>Quantity: <strong style={{ color: 'var(--primary-600)', fontFamily: 'var(--font-mono)' }}>{selectedIngredient.quantity} {selectedIngredient.unit}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Expiry (FEFO): <strong style={{ color: 'var(--accent-rose)' }}>{formatDate(selectedIngredient.expiryDate)}</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Hold Deadline: <strong style={{ color: 'var(--text-primary)' }}>{formatDate(selectedIngredient.pickupDeadline)}</strong></p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Donor Information</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.84rem' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Donor Identity</span>
                     <p style={{ color: 'var(--text-secondary)' }}>Name: <strong style={{ color: 'var(--text-primary)' }}>{selectedIngredient.donorRef?.name || 'N/A'}</strong></p>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>{selectedIngredient.donorRef?.email || 'N/A'}</p>
-                    <p style={{ color: 'var(--text-secondary)' }}>Reputation: <strong style={{ color: 'var(--primary-400)' }}>⭐ {selectedIngredient.donorRef?.reputationScore ?? 0} pts</strong></p>
+                    <p style={{ color: 'var(--text-secondary)' }}>Trust Rating: <strong style={{ color: 'var(--primary-600)' }}>⭐ {selectedIngredient.donorRef?.reputationScore ?? 0} pts</strong></p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.4rem', letterSpacing: '0.5px' }}>
-                    Pickup Location Verification
+                  <h4 style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.45rem', letterSpacing: '0.06em' }}>
+                    Pickup Location &amp; Geofence Verification
                   </h4>
-                  <div className="map-container" style={{ height: '165px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                  <div className="map-container" style={{ height: '175px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
                     <LeafletMap lat={selectedIngredient.location.lat} lng={selectedIngredient.location.lng} readOnly={true} markerLabel={`${selectedIngredient.name} Pickup`} />
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: '0.35rem', fontFamily: 'var(--font-mono)' }}>
                     GPS: {selectedIngredient.location.lat.toFixed(6)}, {selectedIngredient.location.lng.toFixed(6)}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.1rem', marginTop: '0.35rem' }}>
+                <div style={{ display: 'flex', gap: '0.85rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', marginTop: '0.35rem' }}>
                   <button
-                    className="btn btn-danger"
-                    style={{ flex: 1, padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                    className="btn btn-secondary"
+                    style={{ flex: 1, padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--accent-rose)' }}
                     onClick={handleOpenRejectModal}
                   >
                     <XCircle size={15} /> Reject (−5 Rep)
