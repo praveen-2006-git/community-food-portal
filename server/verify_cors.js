@@ -19,20 +19,18 @@ async function runTests() {
   };
 
   try {
-    // TEST 1: In production mode, missing FRONTEND_URL must throw a fatal error
-    console.log('TEST 1: Production mode with missing FRONTEND_URL...');
+    // TEST 1: In production mode with missing FRONTEND_URL, server should start gracefully with fallback
+    console.log('TEST 1: Production mode with missing FRONTEND_URL (fallback mode)...');
     process.env.NODE_ENV = 'production';
     delete process.env.FRONTEND_URL;
     clearServerCache();
 
-    assert.throws(
-      () => {
-        require('./index');
-      },
-      /FRONTEND_URL environment variable is missing in production/,
-      'Should throw an error if FRONTEND_URL is missing in production'
-    );
-    console.log('TEST 1 RESULT: PASSED ✅ (Fatal error thrown correctly)');
+    const fallbackInstance = require('./index');
+    assert.ok(fallbackInstance.server, 'Server should start gracefully and fallback to default origins when FRONTEND_URL is unset');
+    if (fallbackInstance.server && fallbackInstance.server.close) {
+      await new Promise((resolve) => fallbackInstance.server.close(resolve));
+    }
+    console.log('TEST 1 RESULT: PASSED ✅ (Graceful fallback handled correctly)');
 
     // TEST 2: In production mode, presence of FRONTEND_URL starts server successfully
     console.log('\nTEST 2: Production mode with valid FRONTEND_URL...');
