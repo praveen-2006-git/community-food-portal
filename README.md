@@ -1,28 +1,8 @@
-<<<<<<< HEAD
 # Community Surplus Food Ingredient Inventory Routing Portal
 
 A full-stack MERN (MongoDB, Express, React, Node.js) web application designed to coordinate the rescue and local redistribution of raw surplus food ingredients—focusing on fresh vegetables and perishable goods—from commercial donors (hotels, caterers, marriage/banquet halls, community halls) to local soup kitchens.
 
 ---
-
-## 1. System Features & Workflows
-
-*   **Donor-Controlled Uploads:** Donors list surplus raw ingredients specifying categories, quantities, storage conditions, and pickup deadlines.
-*   **Indian Venue Categorization:** Tailored donor profiles for hotels, mandapams, marriage halls, community halls, restaurants, banquet halls, and catering facilities.
-*   **Geospatial Search Feed:** Nearby community kitchens discover approved listings sorted nearest-first within a default 15 km radius limit.
-*   **Route Support Map:** Interactive Leaflet maps with custom marker legends trace driving coordinates via a free same-origin OpenStreetMap (OSRM) API relay labeled **"Pickup Route Support"** (with straight-line fallback rendering if OSRM is offline).
-*   **Atomic Claim Transactions:** Multi-document Mongoose database transactions prevent double claims or quantity race conditions.
-*   **FEFO Pantry Intake:** Completed handovers automatically log ingredients into the kitchen's pantry batch inventory sorted by First-Expired, First-Out (FEFO) rules.
-*   **Background Expiry Sweeper:** Periodically deactivates expired listings and triggers idempotent delay warnings for claimed listings without silent cancellations.
-*   **Modern UI Customizations:** Clean, Vercel-style dark default and light theme variables featuring segmented tab navigation and high-contrast monospace numerical data displays.
-
----
-
-## 2. System Requirements & Setup
-
-### Environment Variables
-Configure a `.env` file inside the `server/` directory:
-=======
 # 🥗 Community Surplus Food Ingredient Routing Portal
 
 Hey there! 👋 Welcome to our project repository. 
@@ -138,5 +118,3 @@ To run all automated integration test suites:
 cd server
 node verify_all.js
 ```
-=======
->>>>>>> origin/main
